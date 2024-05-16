@@ -129,6 +129,7 @@ def bitcoin_miner():
                 # Logg all hashes that start with 8 zeros or more
                 
                 if hash.startswith('00000000'): 
+                    now = datetime.now()
                     num_zeros = len(hash) - len(hash.lstrip('0'))
                     logg('[*] Zero length : {} New hash: {} target: {} extranonce {} nonce {}'.format(num_zeros, hash, target, extranonce2, nonce))
                     print("\r%s Zero length: %s hash: %s extranonce %s "%(now, num_zeros, hash, extranonce2))
