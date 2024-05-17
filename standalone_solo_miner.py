@@ -25,10 +25,10 @@ import struct
 
 # Replace this with your Bitcoin Address
 address = '1NStyxyH5hFc3Bj7d4D2VKktx2bqdVuEBF'
-# maxCycle = 4294967295 
-# random_nonce = False
-maxCycle = 100000
-random_nonce = True
+maxCycle = 4294967295 
+random_nonce = False
+# maxCycle = 100000
+# random_nonce = True
 
 
 

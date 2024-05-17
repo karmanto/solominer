@@ -52,6 +52,7 @@ def bitcoin_miner():
     nbits = ""
     ntime = ""
     prevHashLE = ""
+    versionLE = 0
     ntimeLE = 0
     nbitsLE = 0
     extranonce2_size = 0

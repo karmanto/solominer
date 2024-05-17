@@ -8,14 +8,14 @@ check_internet() {
 
 # Fungsi untuk menjalankan file Python
 run_python_files() {
-  python3 solo_listener.py &
+  python3 py_solo_listener.py &
   listener_pid=$!
 
   sleep 2
 
   for i in $(seq 1 $1)
   do
-    python3 solo_block.py $i &
+    python3 py_solo_block.py $i &
     pids[${i}]=$!
   done
 }
