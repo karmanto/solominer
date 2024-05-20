@@ -8,6 +8,7 @@ check_internet() {
 
 # Fungsi untuk menjalankan file Python
 run_python_files() {
+  DIRECTORY=$(dirname "$DIRECTORY")
   [ ! -f .env ] || export $(grep -v '^#' .env | xargs)
   python3 $DIRECTORY/py_solo_listener.py &
   listener_pid=$!
