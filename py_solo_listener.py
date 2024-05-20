@@ -8,6 +8,7 @@ import time
 import json
 import time
 import os
+import sys
 
 
 
@@ -18,7 +19,7 @@ def load_env(file_path):
                 key, value = line.strip().split('=', 1)
                 os.environ[key] = value
 
-load_env('.env')
+load_env(sys.argv[2] + '/.env')
 
 
 

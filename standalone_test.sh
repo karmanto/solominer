@@ -8,10 +8,10 @@ check_internet() {
 
 # Fungsi untuk menjalankan file Python
 run_python_files() {
-  local DIRECTORY=$1
+  local DIRECTORY=$2
   [ ! -f "$DIRECTORY/.env" ] || export $(grep -v '^#' "$DIRECTORY/.env" | xargs)
 
-  for i in $(seq 1 $2)
+  for i in $(seq 1 $1)
   do
     python3 "$DIRECTORY/standalone_solo_miner.py" $i &
     pids[${i}]=$!
