@@ -223,7 +223,7 @@ func main() {
 					}
 
 					numZeros := len(hash_temp) - len(strings.TrimRight(hash_temp, "0"))
-					if numZeros >= 6 && !mineSubmitStat {
+					if numZeros >= 8 && !mineSubmitStat {
 						mineSubmitStat = true
 						hash, err := reverseBytes(hash_temp)
 						if err != nil {
