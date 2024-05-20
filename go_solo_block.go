@@ -15,7 +15,7 @@ import (
 )
 
 func logg(msg string, dir string) {
-	file, err := os.OpenFile(dir + "miner.log", os.O_WRONLY|os.O_APPEND, 0644)
+	file, err := os.OpenFile(dir + "/miner.log", os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
 		return
 	}
@@ -43,7 +43,7 @@ func calculateHashrate(nonce int, lastUpdated time.Time) time.Time {
 
 func checkStat(argmnt int, dir string) bool {
 	for {
-		content, err1 := ioutil.ReadFile(dir + "stat.txt")
+		content, err1 := ioutil.ReadFile(dir + "/stat.txt")
 		if err1 == nil {
 			contentStr := string(content)
 			num, err2 := strconv.Atoi(contentStr)
@@ -60,7 +60,7 @@ func checkStat(argmnt int, dir string) bool {
 
 func getData(dir string) string {
 	for {
-		content, err := ioutil.ReadFile(dir + "data.txt")
+		content, err := ioutil.ReadFile(dir + "/data.txt")
 		if err == nil {
 			contentStr := string(content)
 			return contentStr
@@ -145,7 +145,7 @@ func main() {
 					prefix := nbits[:2]
 					prefixInt, err2 := strconv.ParseInt(prefix, 16, 64)
 					if err1 == nil && err2 == nil && num4 < 20 {
-						err3 := ioutil.WriteFile(dir + "stat.txt", []byte(strconv.Itoa(argmnt)), 0644)
+						err3 := ioutil.WriteFile(dir + "/stat.txt", []byte(strconv.Itoa(argmnt)), 0644)
 						if err3 == nil {
 							errorStat = false
 							extranonce2_size = num4
@@ -243,7 +243,7 @@ func main() {
 
 						if intHash.Cmp(intTarget) == -1 {
 							sendString := blockheader + "\n" + job_id + "\n" + extranonce2 + "\n" + ntime + "\n" + nonce
-							_ = ioutil.WriteFile(dir + "result.txt", []byte(sendString), 0644)
+							_ = ioutil.WriteFile(dir + "/result.txt", []byte(sendString), 0644)
 						}
 					} else if numZeros >= 4 && random_nonce {
 						hash, err := reverseBytes(hash_temp)

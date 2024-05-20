@@ -34,7 +34,7 @@ sendResultPending = False
 
 def logg(msg):
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    with open(dir + 'miner.log', 'a') as file:
+    with open(dir + '/miner.log', 'a') as file:
         file.write(f'{timestamp} {msg}\n')
 
 
@@ -53,14 +53,14 @@ def handle_result(sock):
 
     while threadExists:
         try:
-            f = open(dir + "result.txt", "r")
+            f = open(dir + "/result.txt", "r")
             result = f.read()
             f.close()
             if result and len(result.splitlines()) >= 5:
-                f = open(dir + "result.txt", "w")
+                f = open(dir + "/result.txt", "w")
                 f.write("")
                 f.close()
-                f = open(dir + "stat.txt", "w")
+                f = open(dir + "/stat.txt", "w")
                 f.write("999")
                 f.close()
 
@@ -104,13 +104,13 @@ def block_listener():
         sendResultFinish = False
         threadExists = False
         sendResultPending = False
-        f = open(dir + "stat.txt", "w")
+        f = open(dir + "/stat.txt", "w")
         f.write("999")
         f.close()
-        f = open(dir + "result.txt", "w")
+        f = open(dir + "/result.txt", "w")
         f.write("")
         f.close()
-        f = open(dir + "data.txt", "w")
+        f = open(dir + "/data.txt", "w")
         f.write("")
         f.close()
 
@@ -155,7 +155,7 @@ def block_listener():
                 versionLE = int(version, 16)
                 ntimeLE = int(ntime, 16)
                 nbitsLE = int(nbits, 16)
-                f = open(dir + "data.txt", "w")
+                f = open(dir + "/data.txt", "w")
                 f.write(job_id + "\n")
                 f.write(prevhash + "\n")
                 f.write(coinb1 + "\n")
@@ -172,7 +172,7 @@ def block_listener():
                 f.write(str(extranonce2_size) + "\n")
                 f.write(extranonce1)
                 f.close()
-                f = open(dir + "stat.txt", "w")
+                f = open(dir + "/stat.txt", "w")
                 f.write("0")
                 f.close()
             except:
@@ -205,7 +205,7 @@ def block_listener():
                             versionLE = int(version, 16)
                             ntimeLE = int(ntime, 16)
                             nbitsLE = int(nbits, 16)
-                            f = open(dir + "data.txt", "w")
+                            f = open(dir + "/data.txt", "w")
                             f.write(job_id + "\n")
                             f.write(prevhash + "\n")
                             f.write(coinb1 + "\n")
@@ -222,7 +222,7 @@ def block_listener():
                             f.write(str(extranonce2_size) + "\n")
                             f.write(extranonce1)
                             f.close()
-                            f = open(dir + "stat.txt", "w")
+                            f = open(dir + "/stat.txt", "w")
                             f.write("0")
                             f.close()
                     except:
