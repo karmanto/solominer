@@ -8,11 +8,12 @@ check_internet() {
 
 # Fungsi untuk menjalankan file Python
 run_python_files() {
-  [ ! -f .env ] || export $(grep -v '^#' .env | xargs)
+  local DIRECTORY=$1
+  [ ! -f "$DIRECTORY/.env" ] || export $(grep -v '^#' "$DIRECTORY/.env" | xargs)
 
-  for i in $(seq 1 $1)
+  for i in $(seq 1 $2)
   do
-    python3 $DIRECTORY/standalone_solo_miner.py $i &
+    python3 "$DIRECTORY/standalone_solo_miner.py" $i &
     pids[${i}]=$!
   done
 }
@@ -34,11 +35,17 @@ on_exit() {
 # Menangkap sinyal SIGINT
 trap on_exit SIGINT
 
+# Memeriksa apakah argumen telah diberikan
+if [ -z "$1" ]; then
+  echo "Usage: $0 <DIRECTORY>"
+  exit 1
+fi
+
 # Loop utama
 while true; do
   if check_internet; then
     echo "Internet tersedia. Menjalankan file Python..."
-    run_python_files $1
+    run_python_files "$1" $2
     while check_internet; do
       sleep 5
     done

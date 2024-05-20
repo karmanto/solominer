@@ -2,3 +2,4 @@
 *.log
 .env
 go_solo_block
+__pychache__/

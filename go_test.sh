@@ -8,13 +8,16 @@ check_internet() {
 
 # Fungsi untuk menjalankan file Python
 run_python_files() {
+  local DIRECTORY=$1
+  [ ! -f "$DIRECTORY/.env" ] || export $(grep -v '^#' "$DIRECTORY/.env" | xargs)
+
   [ ! -f .env ] || export $(grep -v '^#' .env | xargs)
   python3 $DIRECTORY/go_solo_listener.py &
   listener_pid=$!
 
   sleep 2
 
-  for i in $(seq 1 $1)
+  for i in $(seq 1 $2)
   do
     $DIRECTORY/go_solo_block $i &
     pids[${i}]=$!
