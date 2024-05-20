@@ -8,10 +8,12 @@ check_internet() {
 
 # Fungsi untuk menjalankan file Python
 run_python_files() {
-  local DIRECTORY=$2
-  [ ! -f "$DIRECTORY/.env" ] || export $(grep -v '^#' "$DIRECTORY/.env" | xargs)
+  local script_dir
+  script_dir="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
+  if [ -f "$script_dir/.env" ]; then
+    export $(grep -v '^#' "$script_dir/.env" | xargs)
+  fi
 
-  [ ! -f .env ] || export $(grep -v '^#' .env | xargs)
   python3 $DIRECTORY/go_solo_listener.py &
   listener_pid=$!
 

@@ -22,7 +22,9 @@ import os
 
 
 def load_env(file_path):
-    with open(file_path) as f:
+    script_dir = os.path.dirname(os.path.abspath(__file__)) 
+    env_path = os.path.join(script_dir, file_path) 
+    with open(env_path) as f:
         for line in f:
             if line.strip() and not line.startswith("#"):
                 key, value = line.strip().split('=', 1)
@@ -189,9 +191,9 @@ def bitcoin_miner(t):
 
             # Logg all hashes that start with 8 zeros or more
             
-            if hash.startswith('00000000'): 
+            if hash.startswith('00000'): 
                 num_zeros = len(hash) - len(hash.lstrip('0'))
-                logg('[*] Zero length : {} New hash: {} target: {} extranonce {} nonce {}'.format(num_zeros, hash, target, ctx.extranonce2))
+                logg('[*] Zero length : {} New hash: {} target: {} extranonce {} nonce {}'.format(num_zeros, hash, target, ctx.extranonce2, nonce))
                 print("\r%s Zero length: %s hash: %s extranonce %s "%(now, num_zeros, hash, ctx.extranonce2))
             elif hash.startswith('0000') and random_nonce:
                 now = datetime.now()

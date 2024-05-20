@@ -10,18 +10,19 @@ import time
 from datetime import datetime
 import os
 import threading
-import sys
 
 
 
 def load_env(file_path):
-    with open(file_path) as f:
+    script_dir = os.path.dirname(os.path.abspath(__file__)) 
+    env_path = os.path.join(script_dir, file_path) 
+    with open(env_path) as f:
         for line in f:
             if line.strip() and not line.startswith("#"):
                 key, value = line.strip().split('=', 1)
                 os.environ[key] = value
 
-load_env(sys.argv[2] + '/.env')
+load_env('.env')
 
 
 
@@ -34,6 +35,7 @@ sendResultPending = False
 
 
 def logg(msg):
+    global dir
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     with open(dir + '/miner.log', 'a') as file:
         file.write(f'{timestamp} {msg}\n')
@@ -51,6 +53,8 @@ def handle_result(sock):
     global threadExists
     global sendResultFinish
     global sendResultPending
+    global address
+    global dir
 
     while threadExists:
         try:
@@ -100,6 +104,8 @@ def block_listener():
     global threadExists
     global sendResultFinish
     global sendResultPending
+    global address
+    global dir
 
     while True:
         sendResultFinish = False

@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"io/ioutil"
 	"math/big"
@@ -14,7 +15,22 @@ import (
 	"time"
 )
 
+func checkFileExists(filePath string) bool {
+	_, error := os.Stat(filePath)
+	return !errors.Is(error, os.ErrNotExist)
+}
+
 func logg(msg string, dir string) {
+	logFilePath := dir + "/miner.log"
+	isFileExist := checkFileExists(logFilePath)
+	if !isFileExist {
+		_, err := os.Create(logFilePath)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+	}
+
 	file, err := os.OpenFile(dir + "/miner.log", os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
 		return
