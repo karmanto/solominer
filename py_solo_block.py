@@ -1,6 +1,3 @@
-#!/usr/bin/env python  
-# Copyright (c) 2021-2022 iceland
-# Copyright (c) 2022-2023 Papa Crouz
 # Distributed under the MIT/X11 software license, see the accompanying
 # file license http://www.opensource.org/licenses/mit-license.php.
 
@@ -16,19 +13,31 @@ import sys
 import time
 from datetime import datetime
 import struct
+import os
 
 
 
-# maxCycle = 4294967295 
-# random_nonce = False
-maxCycle = 100000
-random_nonce = True
+def load_env(file_path):
+    with open(file_path) as f:
+        for line in f:
+            if line.strip() and not line.startswith("#"):
+                key, value = line.strip().split('=', 1)
+                os.environ[key] = value
+
+load_env('.env')
+
+
+
+maxCycle = int(os.getenv("CYCLE", "100000"))
+random_nonce = os.getenv("RANDOM_NONCE") == '1'
+dir = os.getenv("DIRECTORY", "")
+address = os.getenv("ADDRESS", "1NStyxyH5hFc3Bj7d4D2VKktx2bqdVuEBF")
 
 
 
 def logg(msg):
     timestamp = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    with open('miner.log', 'a') as file:
+    with open(dir + '/miner.log', 'a') as file:
         file.write(f'{timestamp} {msg}\n')
 
 
@@ -61,16 +70,16 @@ def bitcoin_miner():
     firstStart = True
 
     while True:
-        f = open("stat.txt", "r")
+        f = open(dir + "/stat.txt", "r")
         stat = f.read()
         f.close()
         if stat and int(stat) == int(sys.argv[1]) - 1 :
             firstStart = False
-            f = open("stat.txt", "w")
+            f = open(dir + "/stat.txt", "w")
             f.write(str(sys.argv[1]))
             f.close()
 
-            f = open("data.txt", "r")
+            f = open(dir + "/data.txt", "r")
             data = f.read()
             f.close()
             lines = data.splitlines()
@@ -86,7 +95,6 @@ def bitcoin_miner():
             nbitsLE = int(lines[12])
             extranonce2_size = int(lines[13])
             extranonce1 = lines[14]
-            address = lines[15]
 
         if not firstStart:
             target = (nbits[2:]+'00'*(int(nbits[:2],16) - 3)).zfill(64)

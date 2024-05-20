@@ -8,9 +8,11 @@ check_internet() {
 
 # Fungsi untuk menjalankan file Python
 run_python_files() {
+  [ ! -f .env ] || export $(grep -v '^#' .env | xargs)
+
   for i in $(seq 1 $1)
   do
-    python3 standalone_solo_miner.py $i &
+    python3 $DIRECTORY/standalone_solo_miner.py $i &
     pids[${i}]=$!
   done
 }

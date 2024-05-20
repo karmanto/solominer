@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"math/big"
+	mrand "math/rand"
 	"os"
 	"strconv"
 	"strings"
@@ -14,8 +15,18 @@ import (
 )
 
 func logg(msg string) {
+	file, err := os.OpenFile("miner.log", os.O_WRONLY|os.O_APPEND, 0644)
+	if err != nil {
+		return
+	}
+	defer file.Close()
+
 	timestamp := time.Now().Format("2006-01-02 15:04:05")
-	ioutil.WriteFile("miner.log", []byte(fmt.Sprintf("%s %s\n", timestamp, msg)), 0644)
+	logMessage := fmt.Sprintf("%s %s\n", timestamp, msg)
+	_, err = file.WriteString(logMessage)
+	if err != nil {
+		return
+	}
 }
 
 func calculateHashrate(nonce int, lastUpdated time.Time) time.Time {
@@ -99,25 +110,27 @@ func reverseBytes(hexString string) (string, error) {
 
 func main() {
 	var (
-		job_id, coinb1, coinb2, nbits, ntime, prevhash, extranonce1, address, target, extranonce2, version, nonce string 
+		job_id, coinb1, coinb2, nbits, ntime, prevhash, extranonce1, target, extranonce2, version, nonce string 
 		merkle_branch []string
 		extranonce2_size int
 		lastUpdated time.Time
 	)
 
-	max_cycle := 4294967295
-	random_nonce := false
-	// max_cycle := 100000
-	// random_nonce := true
+	breakStat := false
+	mineSubmitStat := false
+	random_nonce_string := os.Getenv("RANDOM_NONCE")
+	random_nonce := random_nonce_string == "1"
+	max_cycle_string := os.Getenv("CYCLE")
 	errorStat := true
 	arg := os.Args[1]
-	argmnt, err := strconv.Atoi(arg)
-	if err == nil {
+	argmnt, err1 := strconv.Atoi(arg)
+	max_cycle, err2 := strconv.Atoi(max_cycle_string)
+	if err1 == nil && err2 == nil {
 		for {
 			if checkStat(argmnt) {
 				errorStat = true
 				lines := strings.Split(getData(), "\n")
-				if len(lines) >= 16 {
+				if len(lines) >= 15 {
 					job_id = lines[0]
 					coinb1 = lines[2]
 					coinb2 = lines[3]
@@ -127,7 +140,6 @@ func main() {
 					ntime = lines[7]
 					prevhash = lines[9]
 					extranonce1 = lines[14]
-					address = lines[15]
 					num4, err1 := strconv.Atoi(lines[13])
 					prefix := nbits[:2]
 					prefixInt, err2 := strconv.ParseInt(prefix, 16, 64)
@@ -146,12 +158,8 @@ func main() {
 			}
 	
 			for !errorStat {
-				//exit error declare not used
-				_ = address
-
 				extranonce2_temp, err := generateExtranonce2(extranonce2_size)
 				if err != nil {
-					errorStat = true
 					break
 				}
 
@@ -159,7 +167,6 @@ func main() {
 				coinbase := coinb1 + extranonce1 + extranonce2 + coinb2
 				coinbase_hash, err := doubleSHA256(coinbase)
 				if err != nil {
-					errorStat = true
 					break
 				}
 
@@ -168,7 +175,6 @@ func main() {
 				for _, merkle_single := range merkle_branch {
 					hash_temp, err := doubleSHA256(merkle_root + merkle_single)
 					if err != nil {
-						errorStat = true
 						err_hashing_merkle_branch = true
 						break
 					}
@@ -176,7 +182,6 @@ func main() {
 				}
 
 				if err_hashing_merkle_branch {
-					errorStat = true
 					break
 				}
 
@@ -186,7 +191,6 @@ func main() {
 				little_endian_nbits, err4 := reverseBytes(nbits)
 				little_endian_prevhash, err5 := reverseBytes(prevhash)
 				if err1 != nil || err2 != nil || err3 != nil || err4 != nil || err5 != nil {
-					errorStat = true
 					break
 				}
 
@@ -197,12 +201,8 @@ func main() {
 
 				for {
 					if random_nonce {
-						nonce_temp, err := generateExtranonce2(4)
-						if err != nil {
-							errorStat = true
-							break
-						}
-
+						randomValue := mrand.Uint32()
+						nonce_temp := fmt.Sprintf("%08x", randomValue)
 						nonce = nonce_temp
 					} else {
 						hexnNonce := strconv.FormatUint(uint64(nNonce), 16)
@@ -211,22 +211,23 @@ func main() {
 
 					little_endian_nonce, err := reverseBytes(nonce)
 					if err != nil {
-						errorStat = true
+						breakStat = true
 						break
 					}
 
 					blockheader := partialheader + little_endian_nonce
 					hash_temp, err := doubleSHA256(blockheader)
 					if err != nil {
-						errorStat = true
+						breakStat = true
 						break
 					}
 
 					numZeros := len(hash_temp) - len(strings.TrimRight(hash_temp, "0"))
-					if numZeros >= 8 {
+					if numZeros >= 6 && !mineSubmitStat {
+						mineSubmitStat = true
 						hash, err := reverseBytes(hash_temp)
 						if err != nil {
-							errorStat = true
+							breakStat = true
 							break
 						}
 
@@ -234,19 +235,19 @@ func main() {
 							fmt.Sprintf("[*] Zero length : %d New hash: %s target: %s extranonce %s nonce %s",
 							numZeros, hash, target, extranonce2, nonce))
 
-						output := fmt.Sprintf("[*] Zero length : %d hash: %s extranonce %s nonce %s jobid %s ", numZeros, hash, extranonce2, nonce, job_id)
-						fmt.Println(output)
+						fmt.Printf("\rZero length: %d hash: %s extranonce %s nonce %s jobid %s \n", numZeros, hash, extranonce2, nonce, job_id)
 						
 						intHash, _ := new(big.Int).SetString(hash, 16)
 						intTarget, _ := new(big.Int).SetString(target, 16)
 
 						if intHash.Cmp(intTarget) == -1 {
-							
+							sendString := blockheader + "\n" + job_id + "\n" + extranonce2 + "\n" + ntime + "\n" + nonce
+							_ = ioutil.WriteFile("result.txt", []byte(sendString), 0644)
 						}
 					} else if numZeros >= 4 && random_nonce {
 						hash, err := reverseBytes(hash_temp)
 						if err != nil {
-							errorStat = true
+							breakStat = true
 							break
 						}
 						
@@ -259,11 +260,18 @@ func main() {
 
 					nNonce += 1
 					if cycleBack == max_cycle {
+						breakStat = true
 						break
 					}
 
 					cycleBack += 1
 				}
+
+				if breakStat {
+					breakStat = false
+					break
+				}
+
 			}
 	
 		}

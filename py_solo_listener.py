@@ -1,6 +1,3 @@
-#!/usr/bin/env python  
-# Copyright (c) 2021-2022 iceland
-# Copyright (c) 2022-2023 Papa Crouz
 # Distributed under the MIT/X11 software license, see the accompanying
 # file license http://www.opensource.org/licenses/mit-license.php.
 
@@ -10,11 +7,23 @@ import socket
 import time
 import json
 import time
+import os
 
 
 
-# Replace this with your Bitcoin Address
-address = '1NStyxyH5hFc3Bj7d4D2VKktx2bqdVuEBF'
+def load_env(file_path):
+    with open(file_path) as f:
+        for line in f:
+            if line.strip() and not line.startswith("#"):
+                key, value = line.strip().split('=', 1)
+                os.environ[key] = value
+
+load_env('.env')
+
+
+
+address = os.getenv("ADDRESS", "1NStyxyH5hFc3Bj7d4D2VKktx2bqdVuEBF")
+dir = os.getenv("DIRECTORY", "")
 
 
 
@@ -26,7 +35,7 @@ def rev8(item):
 
 
 def block_listener():
-    f = open("stat.txt", "w")
+    f = open(dir + "/stat.txt", "w")
     f.write("999")
     f.close()
 
@@ -78,7 +87,7 @@ def block_listener():
             ntimeLE = int(ntime, 16)
             nbitsLE = int(nbits, 16)
 
-            f = open("data.txt", "w")
+            f = open(dir +"/data.txt", "w")
             f.write(job_id + "\n")
             f.write(prevhash + "\n")
             f.write(coinb1 + "\n")
@@ -97,7 +106,7 @@ def block_listener():
             f.write(address)
             f.close()
 
-            f = open("stat.txt", "w")
+            f = open(dir + "/stat.txt", "w")
             f.write("0")
             f.close()
 
@@ -126,7 +135,7 @@ def block_listener():
                         ntimeLE = int(ntime, 16)
                         nbitsLE = int(nbits, 16)
 
-                        f = open("data.txt", "w")
+                        f = open(dir + "/data.txt", "w")
                         f.write(job_id + "\n")
                         f.write(prevhash + "\n")
                         f.write(coinb1 + "\n")
@@ -141,11 +150,10 @@ def block_listener():
                         f.write(str(ntimeLE) + "\n")
                         f.write(str(nbitsLE))
                         f.write(str(extranonce2_size) + "\n")
-                        f.write(extranonce1 + "\n")
-                        f.write(address)
+                        f.write(extranonce1)
                         f.close()
 
-                        f = open("stat.txt", "w")
+                        f = open(dir + "/stat.txt", "w")
                         f.write("0")
                         f.close()
                 

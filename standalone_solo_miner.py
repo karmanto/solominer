@@ -1,6 +1,3 @@
-#!/usr/bin/env python  
-# Copyright (c) 2021-2022 iceland
-# Copyright (c) 2022-2023 Papa Crouz
 # Distributed under the MIT/X11 software license, see the accompanying
 # file license http://www.opensource.org/licenses/mit-license.php.
 
@@ -20,15 +17,25 @@ import sys
 import time
 from datetime import datetime
 import struct
+import os
 
 
 
-# Replace this with your Bitcoin Address
-address = '1NStyxyH5hFc3Bj7d4D2VKktx2bqdVuEBF'
-maxCycle = 4294967295 
-random_nonce = False
-# maxCycle = 100000
-# random_nonce = True
+def load_env(file_path):
+    with open(file_path) as f:
+        for line in f:
+            if line.strip() and not line.startswith("#"):
+                key, value = line.strip().split('=', 1)
+                os.environ[key] = value
+
+load_env('.env')
+
+
+
+maxCycle = int(os.getenv("CYCLE", "100000"))
+random_nonce = os.getenv("RANDOM_NONCE") == '1'
+address = os.getenv("ADDRESS", "1NStyxyH5hFc3Bj7d4D2VKktx2bqdVuEBF")
+dir = os.getenv("DIRECTORY", "")
 
 
 
@@ -41,7 +48,7 @@ def handler(signal_received, frame):
 
 def logg(msg):
     # basic logging 
-    filename = 'miner.log'
+    filename = dir + '/miner.log'
     # if len(sys.argv) > 1:
     #     filename = 'miner' + sys.argv[1] + '.log'
     logging.basicConfig(level=logging.INFO, filename=filename, format='%(asctime)s %(message)s') # include timestamp
