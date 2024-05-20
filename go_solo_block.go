@@ -14,8 +14,8 @@ import (
 	"time"
 )
 
-func logg(msg string) {
-	file, err := os.OpenFile("miner.log", os.O_WRONLY|os.O_APPEND, 0644)
+func logg(msg string, dir string) {
+	file, err := os.OpenFile(dir + "miner.log", os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
 		return
 	}
@@ -41,9 +41,9 @@ func calculateHashrate(nonce int, lastUpdated time.Time) time.Time {
 	return lastUpdated
 }
 
-func checkStat(argmnt int) bool {
+func checkStat(argmnt int, dir string) bool {
 	for {
-		content, err1 := ioutil.ReadFile("stat.txt")
+		content, err1 := ioutil.ReadFile(dir + "stat.txt")
 		if err1 == nil {
 			contentStr := string(content)
 			num, err2 := strconv.Atoi(contentStr)
@@ -58,9 +58,9 @@ func checkStat(argmnt int) bool {
 	}
 }
 
-func getData() string {
+func getData(dir string) string {
 	for {
-		content, err := ioutil.ReadFile("data.txt")
+		content, err := ioutil.ReadFile(dir + "data.txt")
 		if err == nil {
 			contentStr := string(content)
 			return contentStr
@@ -119,6 +119,7 @@ func main() {
 	breakStat := false
 	mineSubmitStat := false
 	random_nonce_string := os.Getenv("RANDOM_NONCE")
+	dir := os.Getenv("DIRECTORY")
 	random_nonce := random_nonce_string == "1"
 	max_cycle_string := os.Getenv("CYCLE")
 	errorStat := true
@@ -127,9 +128,9 @@ func main() {
 	max_cycle, err2 := strconv.Atoi(max_cycle_string)
 	if err1 == nil && err2 == nil {
 		for {
-			if checkStat(argmnt) {
+			if checkStat(argmnt, dir) {
 				errorStat = true
-				lines := strings.Split(getData(), "\n")
+				lines := strings.Split(getData(dir), "\n")
 				if len(lines) >= 15 {
 					job_id = lines[0]
 					coinb1 = lines[2]
@@ -144,7 +145,7 @@ func main() {
 					prefix := nbits[:2]
 					prefixInt, err2 := strconv.ParseInt(prefix, 16, 64)
 					if err1 == nil && err2 == nil && num4 < 20 {
-						err3 := ioutil.WriteFile("stat.txt", []byte(strconv.Itoa(argmnt)), 0644)
+						err3 := ioutil.WriteFile(dir + "stat.txt", []byte(strconv.Itoa(argmnt)), 0644)
 						if err3 == nil {
 							errorStat = false
 							extranonce2_size = num4
@@ -233,7 +234,7 @@ func main() {
 
 						logg(
 							fmt.Sprintf("[*] Zero length : %d New hash: %s target: %s extranonce %s nonce %s",
-							numZeros, hash, target, extranonce2, nonce))
+							numZeros, hash, target, extranonce2, nonce), dir)
 
 						fmt.Printf("\rZero length: %d hash: %s extranonce %s nonce %s jobid %s \n", numZeros, hash, extranonce2, nonce, job_id)
 						
@@ -242,7 +243,7 @@ func main() {
 
 						if intHash.Cmp(intTarget) == -1 {
 							sendString := blockheader + "\n" + job_id + "\n" + extranonce2 + "\n" + ntime + "\n" + nonce
-							_ = ioutil.WriteFile("result.txt", []byte(sendString), 0644)
+							_ = ioutil.WriteFile(dir + "result.txt", []byte(sendString), 0644)
 						}
 					} else if numZeros >= 4 && random_nonce {
 						hash, err := reverseBytes(hash_temp)
