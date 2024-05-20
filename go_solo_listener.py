@@ -162,22 +162,23 @@ def block_listener():
                 versionLE = int(version, 16)
                 ntimeLE = int(ntime, 16)
                 nbitsLE = int(nbits, 16)
+                dataWrite = job_id + "\n"
+                dataWrite += prevhash + "\n"
+                dataWrite += coinb1 + "\n"
+                dataWrite += coinb2 + "\n"
+                dataWrite += ",".join(merkle_branch) + "\n"
+                dataWrite += version + "\n"
+                dataWrite += nbits + "\n"
+                dataWrite += ntime + "\n"
+                dataWrite += str(clean_jobs) + "\n"
+                dataWrite += prevHashLE + "\n"
+                dataWrite += str(versionLE) + "\n"
+                dataWrite += str(ntimeLE) + "\n"
+                dataWrite += str(nbitsLE) + "\n"
+                dataWrite += str(extranonce2_size) + "\n"
+                dataWrite += extranonce1
                 f = open(dir + "/data.txt", "w")
-                f.write(job_id + "\n")
-                f.write(prevhash + "\n")
-                f.write(coinb1 + "\n")
-                f.write(coinb2 + "\n")
-                f.write(",".join(merkle_branch) + "\n")
-                f.write(version + "\n")
-                f.write(nbits + "\n")
-                f.write(ntime + "\n")
-                f.write(str(clean_jobs) + "\n")
-                f.write(prevHashLE + "\n")
-                f.write(str(versionLE) + "\n")
-                f.write(str(ntimeLE) + "\n")
-                f.write(str(nbitsLE) + "\n")
-                f.write(str(extranonce2_size) + "\n")
-                f.write(extranonce1)
+                f.write(dataWrite)
                 f.close()
                 f = open(dir + "/stat.txt", "w")
                 f.write("0")
@@ -212,22 +213,23 @@ def block_listener():
                             versionLE = int(version, 16)
                             ntimeLE = int(ntime, 16)
                             nbitsLE = int(nbits, 16)
+                            dataWrite = job_id + "\n"
+                            dataWrite += prevhash + "\n"
+                            dataWrite += coinb1 + "\n"
+                            dataWrite += coinb2 + "\n"
+                            dataWrite += ",".join(merkle_branch) + "\n"
+                            dataWrite += version + "\n"
+                            dataWrite += nbits + "\n"
+                            dataWrite += ntime + "\n"
+                            dataWrite += str(clean_jobs) + "\n"
+                            dataWrite += prevHashLE + "\n"
+                            dataWrite += str(versionLE) + "\n"
+                            dataWrite += str(ntimeLE) + "\n"
+                            dataWrite += str(nbitsLE) + "\n"
+                            dataWrite += str(extranonce2_size) + "\n"
+                            dataWrite += extranonce1
                             f = open(dir + "/data.txt", "w")
-                            f.write(job_id + "\n")
-                            f.write(prevhash + "\n")
-                            f.write(coinb1 + "\n")
-                            f.write(coinb2 + "\n")
-                            f.write(",".join(merkle_branch) + "\n")
-                            f.write(version + "\n")
-                            f.write(nbits + "\n")
-                            f.write(ntime + "\n")
-                            f.write(str(clean_jobs) + "\n")
-                            f.write(prevHashLE + "\n")
-                            f.write(str(versionLE) + "\n")
-                            f.write(str(ntimeLE) + "\n")
-                            f.write(str(nbitsLE))
-                            f.write(str(extranonce2_size) + "\n")
-                            f.write(extranonce1)
+                            f.write(dataWrite)
                             f.close()
                             f = open(dir + "/stat.txt", "w")
                             f.write("0")

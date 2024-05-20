@@ -46,9 +46,9 @@ func logg(msg string, dir string) {
 }
 
 func calculateHashrate(nonce int, lastUpdated time.Time) time.Time {
-	if nonce%1000000 == 999999 {
+	if nonce%50000 == 49999 {
 		now := time.Now()
-		hashrate := 1000000 / now.Sub(lastUpdated).Seconds()
+		hashrate := 50000 / now.Sub(lastUpdated).Seconds()
 		hashrateInt := int64(hashrate)
 		fmt.Printf("\r%s hash/s", strconv.FormatInt(hashrateInt, 10))
 		return now
@@ -135,6 +135,8 @@ func main() {
 	breakStat := false
 	mineSubmitStat := false
 	random_nonce_string := os.Getenv("RANDOM_NONCE")
+	show_hashrate_string := os.Getenv("SHOW_HASHRATE")
+	show_hashrate := show_hashrate_string == "1"
 	dir := os.Getenv("DIRECTORY")
 	random_nonce := random_nonce_string == "1"
 	max_cycle_string := os.Getenv("CYCLE")
@@ -142,7 +144,7 @@ func main() {
 	arg := os.Args[1]
 	argmnt, err1 := strconv.Atoi(arg)
 	max_cycle, err2 := strconv.Atoi(max_cycle_string)
-	if err1 == nil && err2 == nil {
+	if err1 == nil && err2 == nil && max_cycle >= 100000 && max_cycle <= 4294967295 {
 		for {
 			if checkStat(argmnt, dir) {
 				errorStat = true
@@ -261,7 +263,7 @@ func main() {
 							sendString := blockheader + "\n" + job_id + "\n" + extranonce2 + "\n" + ntime + "\n" + nonce
 							_ = ioutil.WriteFile(dir + "/result.txt", []byte(sendString), 0644)
 						}
-					} else if numZeros >= 4 && random_nonce {
+					} else if numZeros >= 4 && !show_hashrate {
 						hash, err := reverseBytes(hash_temp)
 						if err != nil {
 							breakStat = true
@@ -271,7 +273,7 @@ func main() {
 						fmt.Printf("\rZero length: %d hash: %s extranonce %s nonce %s jobid %s ", numZeros, hash, extranonce2, nonce, job_id)
 					}
 
-					if !random_nonce {
+					if show_hashrate {
 						lastUpdated = calculateHashrate(nNonce, lastUpdated)
 					}
 
