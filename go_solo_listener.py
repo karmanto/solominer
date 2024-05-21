@@ -28,9 +28,6 @@ load_env('.env')
 
 address = os.getenv("ADDRESS", "1NStyxyH5hFc3Bj7d4D2VKktx2bqdVuEBF")
 dir = os.getenv("DIRECTORY", "")
-threadExists = False
-sendResultFinish = False
-sendResultPending = False
 
 
 
@@ -49,68 +46,11 @@ def rev8(item):
 
 
 
-def handle_result(sock):
-    global threadExists
-    global sendResultFinish
-    global sendResultPending
-    global address
-    global dir
-
-    while threadExists:
-        try:
-            f = open(dir + "/result.txt", "r")
-            result = f.read()
-            f.close()
-            if result and len(result.splitlines()) >= 5:
-                f = open(dir + "/result.txt", "w")
-                f.write("")
-                f.close()
-                f = open(dir + "/stat.txt", "w")
-                f.write("999")
-                f.close()
-
-                lines = result.splitlines()
-                blockheader = lines[0]
-                job_id = lines[1]
-                extranonce2 = lines[2]
-                ntime = lines[3]
-                nonce = lines[4]
-
-                logg('[*] Block solved on jobId {}.'.format(job_id))
-                logg('[*] Blockheader: {}'.format(blockheader))
-
-                payload = bytes('{"params": ["' + address + '", "' + job_id + '", "' + extranonce2 \
-                                + '", "' + ntime + '", "' + nonce + '"], "id": 1, "method": "mining.submit"}\n', 'utf-8')
-                logg('[*] Payload: {}'.format(payload))
-
-                sendResultPending = True
-
-                try:
-                    sock.sendall(payload)
-                    ret = sock.recv(1024)
-                    logg('[*] Pool response: {}'.format(ret))
-                except:
-                    pass
-
-                sendResultFinish = True
-                break
-
-        except:
-            pass
-
-
-
 def block_listener():
-    global threadExists
-    global sendResultFinish
-    global sendResultPending
     global address
     global dir
 
     while True:
-        sendResultFinish = False
-        threadExists = False
-        sendResultPending = False
         f = open(dir + "/stat.txt", "w")
         f.write("999")
         f.close()
@@ -188,21 +128,43 @@ def block_listener():
                 continue
 
             while True:
-                if not threadExists:
-                    threadExists = True
-                    result_thread = threading.Thread(target=handle_result, args=(sock,))
-                    result_thread.start()
-
                 response = b''
                 while response.count(b'\n') < 4 and not(b'mining.notify' in response):
-                    if not sendResultPending:
-                        response += sock.recv(1024)
+                    f = open(dir + "/result.txt", "r")
+                    result = f.read()
+                    f.close()
+                    if result and len(result.splitlines()) >= 5:
+                        f = open(dir + "/stat.txt", "w")
+                        f.write("999")
+                        f.close()
+                        lines = result.splitlines()
+                        blockheader = lines[0]
+                        job_id = lines[1]
+                        extranonce2 = lines[2]
+                        ntime = lines[3]
+                        nonce = lines[4]
+                        logg('[*] Block solved on jobId {}.'.format(job_id))
+                        logg('[*] Blockheader: {}'.format(blockheader))
+                        payload = bytes('{"params": ["' + address + '", "' + job_id + '", "' + extranonce2 \
+                                        + '", "' + ntime + '", "' + nonce + '"], "id": 1, "method": "mining.submit"}\n', 'utf-8')
+                        logg('[*] Payload: {}'.format(payload))
+                        sock.sendall(payload)
+                        response = sock.recv(1024)
+                        while (b'mining.notify' in response):
+                            time.sleep(1)
+                            sock.sendall(payload)
+                            response = sock.recv(1024)
 
-                    if time.time() - last_change_time > 1200 or sendResultFinish:
+                        logg('[*] Pool response: {}'.format(response))
                         breakStat2 = True
                         break
 
-                
+                    if time.time() - last_change_time > 1200:
+                        breakStat2 = True
+                        break
+
+                    response += sock.recv(1024)
+
                 if not breakStat2 :
                     last_change_time = time.time() 
                     try:

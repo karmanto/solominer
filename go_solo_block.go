@@ -74,6 +74,20 @@ func checkStat(argmnt int, dir string) bool {
 	}
 }
 
+func checkResult(dir string) bool {
+	for {
+		content, err1 := ioutil.ReadFile(dir + "/result.txt")
+		if err1 == nil {
+			contentStr := string(content)
+			if contentStr != "" {
+				return true
+			} else {
+				return false
+			}
+		}
+	}
+}
+
 func getData(dir string) string {
 	for {
 		content, err := ioutil.ReadFile(dir + "/data.txt")
@@ -133,7 +147,6 @@ func main() {
 	)
 
 	breakStat := false
-	mineSubmitStat := false
 	random_nonce_string := os.Getenv("RANDOM_NONCE")
 	show_hashrate_string := os.Getenv("SHOW_HASHRATE")
 	show_hashrate := show_hashrate_string == "1"
@@ -242,8 +255,7 @@ func main() {
 					}
 
 					numZeros := len(hash_temp) - len(strings.TrimRight(hash_temp, "0"))
-					if numZeros >= 8 && !mineSubmitStat {
-						mineSubmitStat = true
+					if numZeros >= 8 && !checkResult(dir) {
 						hash, err := reverseBytes(hash_temp)
 						if err != nil {
 							breakStat = true
@@ -258,7 +270,6 @@ func main() {
 						
 						intHash, _ := new(big.Int).SetString(hash, 16)
 						intTarget, _ := new(big.Int).SetString(target, 16)
-
 						if intHash.Cmp(intTarget) == -1 {
 							sendString := blockheader + "\n" + job_id + "\n" + extranonce2 + "\n" + ntime + "\n" + nonce
 							_ = ioutil.WriteFile(dir + "/result.txt", []byte(sendString), 0644)
