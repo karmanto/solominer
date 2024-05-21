@@ -43,10 +43,7 @@ Before you begin, ensure you have the following installed on your system:
 Before you start actual mining, you can test the hashing speed by configuring the environment file.
 
 1. Open the `.env` file.
-2. Uncomment the `RANDOM_NONCE` line and set its value to `0`.
-3. Comment out the `CYCLE` line.
-
-When `RANDOM_NONCE` is set to `0`, the script will display the hashrate for each worker.
+2. Set the value of `SHOW_HASHRATE` to `1` to display the hashrate for each worker.
 
 ## Additional Notes
 
