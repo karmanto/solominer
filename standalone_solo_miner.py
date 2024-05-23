@@ -4,7 +4,6 @@
 
 
 from signal import signal, SIGINT
-import context as ctx 
 import threading
 import binascii
 import hashlib
@@ -23,12 +22,36 @@ import os
 maxCycle = 100000
 random_nonce = True
 address = "1NStyxyH5hFc3Bj7d4D2VKktx2bqdVuEBF"
+fShutdown = False
+listfThreadRunning = [False] * 2 
+updatedPrevHash = None
+job_id = None 
+prevhash = None 
+prevHashLE = None
+coinb1 = None 
+coinb2 = None 
+merkle_branch = None 
+version = None 
+versionLE = None 
+nbits = None 
+nbitsLE = None 
+ntime = None 
+ntimeLE = None 
+clean_jobs = None 
+sub_details = None 
+extranonce1 = None 
+extranonce2 = None
+extranonce2_size = None
+sock = None
+target = None
+
 
 
 
 def handler(signal_received, frame):
+    global fShutdown
     # Handle any cleanup here
-    ctx.fShutdown = True
+    fShutdown = True
     # print('Terminating miner, please wait..')
 
 
@@ -60,15 +83,18 @@ def rev8(item):
 
 
 def check_for_shutdown(t):
+    global fShutdown
     n = t.n
-    if ctx.fShutdown:
+    if fShutdown:
         if n != -1:
-            ctx.listfThreadRunning[n] = False
+            listfThreadRunning[n] = False
             t.exit = True
 
 
 
 class ExitedThread(threading.Thread):
+    global listfThreadRunning
+
     def __init__(self, arg, n):
         super(ExitedThread, self).__init__()
         self.exit = False
@@ -84,12 +110,12 @@ class ExitedThread(threading.Thread):
             check_for_shutdown(self)
             if self.exit:
                 break
-            ctx.listfThreadRunning[n] = True
+            listfThreadRunning[n] = True
             try:
                 self.thread_handler2(arg)
             except:
                 pass
-            ctx.listfThreadRunning[n] = False
+            listfThreadRunning[n] = False
 
             time.sleep(5)
             pass
@@ -102,7 +128,7 @@ class ExitedThread(threading.Thread):
 
     def try_exit(self):
         self.exit = True
-        ctx.listfThreadRunning[self.n] = False
+        listfThreadRunning[self.n] = False
         pass
 
 
@@ -111,25 +137,42 @@ def bitcoin_miner(t):
     global address
     global maxCycle
     global random_nonce
-    while ctx.updatedPrevHash is None:
+    global updatedPrevHash
+    global nbits
+    global extranonce2
+    global extranonce1
+    global extranonce2_size
+    global coinb1
+    global coinb2
+    global merkle_branch
+    global versionLE
+    global ntimeLE
+    global nbitsLE
+    global prevhash
+    global updatedPrevHash
+    global ntime
+    global job_id
+    global sock
+
+    while updatedPrevHash is None:
         pass
 
     while True:
-        target = (ctx.nbits[2:]+'00'*(int(ctx.nbits[:2],16) - 3)).zfill(64)
-        ctx.extranonce2 = hex(random.randint(0,2**64-1))[2:].zfill(2*ctx.extranonce2_size) 
-        coinbase = ctx.coinb1 + ctx.extranonce1 + ctx.extranonce2 + ctx.coinb2
+        target = (nbits[2:]+'00'*(int(nbits[:2],16) - 3)).zfill(64)
+        extranonce2 = hex(random.randint(0,2**64-1))[2:].zfill(2*extranonce2_size) 
+        coinbase = coinb1 + extranonce1 + extranonce2 + coinb2
         coinbase_hash_bin = hashlib.sha256(hashlib.sha256(binascii.unhexlify(coinbase)).digest()).digest()
         merkle_root = coinbase_hash_bin
-        for h in ctx.merkle_branch:
+        for h in merkle_branch:
             merkle_root = hashlib.sha256(hashlib.sha256(merkle_root + binascii.unhexlify(h)).digest()).digest()
 
         merkle_root = binascii.hexlify(merkle_root).decode()
         merkle_root = ''.join([merkle_root[i]+merkle_root[i+1] for i in range(0,len(merkle_root),2)][::-1])
-        partialheader = struct.pack("<L", ctx.versionLE) \
-                            + bytes.fromhex(ctx.prevHashLE)[::-1] \
+        partialheader = struct.pack("<L", versionLE) \
+                            + bytes.fromhex(prevHashLE)[::-1] \
                             + bytes.fromhex(merkle_root) \
-                            + struct.pack("<L", ctx.ntimeLE) \
-                            + struct.pack("<L", ctx.nbitsLE)
+                            + struct.pack("<L", ntimeLE) \
+                            + struct.pack("<L", nbitsLE)
 
         nNonce = 0
         cycleBack = 0
@@ -141,8 +184,8 @@ def bitcoin_miner(t):
             if t.exit:
                 break
 
-            if ctx.prevhash != ctx.updatedPrevHash:
-                ctx.updatedPrevHash = ctx.prevhash
+            if prevhash != updatedPrevHash:
+                updatedPrevHash = prevhash
                 break 
 
             if random_nonce:
@@ -158,22 +201,22 @@ def bitcoin_miner(t):
             
             if hash.startswith('00000000'): 
                 num_zeros = len(hash) - len(hash.lstrip('0'))
-                print("\r%s Zero length: %s hash: %s extranonce %s "%(now, num_zeros, hash, ctx.extranonce2))
+                print("\r%s Zero length: %s hash: %s extranonce %s "%(now, num_zeros, hash, extranonce2))
             elif hash.startswith('0000') and random_nonce:
                 now = datetime.now()
                 num_zeros = len(hash) - len(hash.lstrip('0'))
-                sys.stdout.write("\r%s Zero length: %s hash: %s extranonce %s "%(now, num_zeros, hash, ctx.extranonce2))
+                sys.stdout.write("\r%s Zero length: %s hash: %s extranonce %s "%(now, num_zeros, hash, extranonce2))
                 sys.stdout.flush()
 
             if not random_nonce:
                 last_updated = calculate_hashrate(nNonce, last_updated)
 
             if hash < target :       
-                payload = bytes('{"params": ["'+address+'", "'+ctx.job_id+'", "'+ctx.extranonce2 \
-                    +'", "'+ctx.ntime+'", "'+nonce+'"], "id": 1, "method": "mining.submit"}\n', 'utf-8')
+                payload = bytes('{"params": ["'+address+'", "'+job_id+'", "'+extranonce2 \
+                    +'", "'+ntime+'", "'+nonce+'"], "id": 1, "method": "mining.submit"}\n', 'utf-8')
                 print("\rpayload: %s hash: %s blockheader %s "%(payload, hash, blockheader))
-                ctx.sock.sendall(payload)
-                ret = ctx.sock.recv(1024)
+                sock.sendall(payload)
+                ret = sock.recv(1024)
                 print("\response: %s "%(ret))
                 return True
             
@@ -188,6 +231,25 @@ def bitcoin_miner(t):
 def block_listener(t):
     firstLoad = True
     global address
+    global sub_details
+    global extranonce1
+    global extranonce2_size
+    global job_id
+    global prevhash
+    global coinb1
+    global coinb2
+    global merkle_branch
+    global version
+    global nbits
+    global ntime
+    global clean_jobs
+    global prevHashLE
+    global versionLE
+    global ntimeLE
+    global nbitsLE
+    global updatedPrevHash
+    global prevhash
+    global sock
 
     while True:
         last_change_time = time.time() 
@@ -200,7 +262,7 @@ def block_listener(t):
             sock.sendall(b'{"id": 1, "method": "mining.subscribe", "params": []}\n')
             lines = sock.recv(1024).decode().split('\n')
             response = json.loads(lines[0])
-            ctx.sub_details,ctx.extranonce1,ctx.extranonce2_size = response['result']
+            sub_details,extranonce1,extranonce2_size = response['result']
             sock.sendall(b'{"params": ["'+address.encode()+b'", "password"], "id": 2, "method": "mining.authorize"}\n')
             response = b''
             while response.count(b'\n') < 4 and not(b'mining.notify' in response):
@@ -218,16 +280,16 @@ def block_listener(t):
         if not breakStat:
             last_change_time = time.time() 
             responses = [json.loads(res) for res in response.decode().split('\n') if len(res.strip())>0 and 'mining.notify' in res]
-            ctx.job_id, ctx.prevhash, ctx.coinb1, ctx.coinb2, ctx.merkle_branch, ctx.version, ctx.nbits, ctx.ntime, ctx.clean_jobs = responses[0]['params']
-            ctx.prevHashLE = rev8(ctx.prevhash)
-            ctx.versionLE = int(ctx.version, 16)
-            ctx.ntimeLE = int(ctx.ntime, 16)
-            ctx.nbitsLE = int(ctx.nbits, 16)
+            job_id, prevhash, coinb1, coinb2, merkle_branch, version, nbits, ntime, clean_jobs = responses[0]['params']
+            prevHashLE = rev8(prevhash)
+            versionLE = int(version, 16)
+            ntimeLE = int(ntime, 16)
+            nbitsLE = int(nbits, 16)
             if firstLoad:
                 firstLoad = False
-                ctx.updatedPrevHash = ctx.prevhash
+                updatedPrevHash = prevhash
 
-            ctx.sock = sock 
+            sock = sock 
             while True:
                 t.check_self_shutdown()
                 if t.exit:
@@ -246,8 +308,8 @@ def block_listener(t):
                     last_change_time = time.time() 
                     responses = [json.loads(res) for res in response.decode().split('\n') if len(res.strip())>0 and 'mining.notify' in res]     
 
-                    if responses[0]['params'][1] != ctx.prevhash:
-                        ctx.job_id, ctx.prevhash, ctx.coinb1, ctx.coinb2, ctx.merkle_branch, ctx.version, ctx.nbits, ctx.ntime, ctx.clean_jobs = responses[0]['params']
+                    if responses[0]['params'][1] != prevhash:
+                        job_id, prevhash, coinb1, coinb2, merkle_branch, version, nbits, ntime, clean_jobs = responses[0]['params']
                 
                 else:
                     break
@@ -255,6 +317,8 @@ def block_listener(t):
 
 
 class CoinMinerThread(ExitedThread):
+    global listfThreadRunning
+
     def __init__(self, arg=None):
         super(CoinMinerThread, self).__init__(arg, n=0)
 
@@ -262,19 +326,21 @@ class CoinMinerThread(ExitedThread):
         self.thread_bitcoin_miner(arg)
 
     def thread_bitcoin_miner(self, arg):
-        ctx.listfThreadRunning[self.n] = True
+        listfThreadRunning[self.n] = True
         check_for_shutdown(self)
         try:
             ret = bitcoin_miner(self)
         except Exception as e:
             pass
-        ctx.listfThreadRunning[self.n] = False
+        listfThreadRunning[self.n] = False
 
     pass  
 
 
 
 class NewSubscribeThread(ExitedThread):
+    global listfThreadRunning
+    
     def __init__(self, arg=None):
         super(NewSubscribeThread, self).__init__(arg, n=1)
 
@@ -282,13 +348,13 @@ class NewSubscribeThread(ExitedThread):
         self.thread_new_block(arg)
 
     def thread_new_block(self, arg):
-        ctx.listfThreadRunning[self.n] = True
+        listfThreadRunning[self.n] = True
         check_for_shutdown(self)
         try:
             ret = block_listener(self)
         except Exception as e:
             pass
-        ctx.listfThreadRunning[self.n] = False
+        listfThreadRunning[self.n] = False
 
     pass  
 
