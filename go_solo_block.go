@@ -262,7 +262,7 @@ func main() {
 							break
 						}
 
-						numZerosRev := len(hash_temp) - len(strings.TrimLeft(hash_temp, "0"))
+						numZerosRev := len(hash) - len(strings.TrimLeft(hash, "0"))
 						logg(
 							fmt.Sprintf("[*] Zero length : %d New hash: %s target: %s extranonce %s nonce %s",
 							numZerosRev, hash, target, extranonce2, nonce), dir)
@@ -282,7 +282,7 @@ func main() {
 							break
 						}
 
-						numZerosRev := len(hash_temp) - len(strings.TrimLeft(hash_temp, "0"))
+						numZerosRev := len(hash) - len(strings.TrimLeft(hash, "0"))
 						fmt.Printf("\rZero length: %d hash: %s extranonce %s nonce %s jobid %s ", numZerosRev, hash, extranonce2, nonce, job_id)
 					}
 
