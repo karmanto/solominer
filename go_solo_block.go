@@ -262,9 +262,10 @@ func main() {
 							break
 						}
 
+						numZerosRev := len(hash_temp) - len(strings.TrimLeft(hash_temp, "0"))
 						logg(
 							fmt.Sprintf("[*] Zero length : %d New hash: %s target: %s extranonce %s nonce %s",
-							numZeros, hash, target, extranonce2, nonce), dir)
+							numZerosRev, hash, target, extranonce2, nonce), dir)
 
 						fmt.Printf("\rZero length: %d hash: %s extranonce %s nonce %s jobid %s \n", numZeros, hash, extranonce2, nonce, job_id)
 						
@@ -280,8 +281,9 @@ func main() {
 							breakStat = true
 							break
 						}
-						
-						fmt.Printf("\rZero length: %d hash: %s extranonce %s nonce %s jobid %s ", numZeros, hash, extranonce2, nonce, job_id)
+
+						numZerosRev := len(hash_temp) - len(strings.TrimLeft(hash_temp, "0"))
+						fmt.Printf("\rZero length: %d hash: %s extranonce %s nonce %s jobid %s ", numZerosRev, hash, extranonce2, nonce, job_id)
 					}
 
 					if show_hashrate {
