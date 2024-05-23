@@ -8,7 +8,6 @@ import context as ctx
 import threading
 import binascii
 import hashlib
-import logging
 import random
 import socket
 import time
@@ -21,23 +20,9 @@ import os
 
 
 
-def load_env(file_path):
-    script_dir = os.path.dirname(os.path.abspath(__file__)) 
-    env_path = os.path.join(script_dir, file_path) 
-    with open(env_path) as f:
-        for line in f:
-            if line.strip() and not line.startswith("#"):
-                key, value = line.strip().split('=', 1)
-                os.environ[key] = value
-
-load_env('.env')
-
-
-
-maxCycle = int(os.getenv("CYCLE", "100000"))
-random_nonce = os.getenv("RANDOM_NONCE") == '1'
-address = os.getenv("ADDRESS", "1NStyxyH5hFc3Bj7d4D2VKktx2bqdVuEBF")
-dir = os.getenv("DIRECTORY", "")
+maxCycle = 100000
+random_nonce = True
+address = "1NStyxyH5hFc3Bj7d4D2VKktx2bqdVuEBF"
 
 
 
@@ -45,16 +30,6 @@ def handler(signal_received, frame):
     # Handle any cleanup here
     ctx.fShutdown = True
     # print('Terminating miner, please wait..')
-
-
-
-def logg(msg):
-    # basic logging 
-    filename = dir + '/miner.log'
-    # if len(sys.argv) > 1:
-    #     filename = 'miner' + sys.argv[1] + '.log'
-    logging.basicConfig(level=logging.INFO, filename=filename, format='%(asctime)s %(message)s') # include timestamp
-    logging.info(msg)
 
 
 
@@ -85,7 +60,6 @@ def rev8(item):
 
 
 def check_for_shutdown(t):
-    # handle shutdown 
     n = t.n
     if ctx.fShutdown:
         if n != -1:
@@ -113,9 +87,8 @@ class ExitedThread(threading.Thread):
             ctx.listfThreadRunning[n] = True
             try:
                 self.thread_handler2(arg)
-            except Exception as e:
-                logg("ThreadHandler()")
-                logg(e)
+            except:
+                pass
             ctx.listfThreadRunning[n] = False
 
             time.sleep(5)
@@ -135,28 +108,23 @@ class ExitedThread(threading.Thread):
 
 
 def bitcoin_miner(t):
-    exitStat = False
-
-    while ctx.updatedPrevHash is None and not exitStat:
+    global address
+    global maxCycle
+    global random_nonce
+    while ctx.updatedPrevHash is None:
         pass
 
-    while not exitStat:
+    while True:
         target = (ctx.nbits[2:]+'00'*(int(ctx.nbits[:2],16) - 3)).zfill(64)
         ctx.extranonce2 = hex(random.randint(0,2**64-1))[2:].zfill(2*ctx.extranonce2_size) 
-
         coinbase = ctx.coinb1 + ctx.extranonce1 + ctx.extranonce2 + ctx.coinb2
         coinbase_hash_bin = hashlib.sha256(hashlib.sha256(binascii.unhexlify(coinbase)).digest()).digest()
-
         merkle_root = coinbase_hash_bin
         for h in ctx.merkle_branch:
             merkle_root = hashlib.sha256(hashlib.sha256(merkle_root + binascii.unhexlify(h)).digest()).digest()
 
         merkle_root = binascii.hexlify(merkle_root).decode()
-
-        #little endian
         merkle_root = ''.join([merkle_root[i]+merkle_root[i+1] for i in range(0,len(merkle_root),2)][::-1])
-        # partialheader = ctx.versionLE + ctx.prevHashLE + merkle_root + ctx.ntimeLE + ctx.nbitsLE
-
         partialheader = struct.pack("<L", ctx.versionLE) \
                             + bytes.fromhex(ctx.prevHashLE)[::-1] \
                             + bytes.fromhex(merkle_root) \
@@ -171,7 +139,6 @@ def bitcoin_miner(t):
         while True:
             t.check_self_shutdown()
             if t.exit:
-                exitStat = True
                 break
 
             if ctx.prevhash != ctx.updatedPrevHash:
@@ -179,7 +146,7 @@ def bitcoin_miner(t):
                 break 
 
             if random_nonce:
-                nonce = hex(random.randint(0,2**32-1))[2:].zfill(8) # nNonce   #hex(int(nonce,16)+1)[2:]
+                nonce = hex(random.randint(0,2**32-1))[2:].zfill(8)
             else:
                 nonce = hex(nNonce)[2:].zfill(8)
 
@@ -188,12 +155,9 @@ def bitcoin_miner(t):
             blockheader = partialheader + nonceLE
             hash = hashlib.sha256(hashlib.sha256(blockheader).digest()).digest()
             hash = binascii.hexlify(hash[::-1]).decode()
-
-            # Logg all hashes that start with 8 zeros or more
             
             if hash.startswith('00000000'): 
                 num_zeros = len(hash) - len(hash.lstrip('0'))
-                logg('[*] Zero length : {} New hash: {} target: {} extranonce {} nonce {}'.format(num_zeros, hash, target, ctx.extranonce2, nonce))
                 print("\r%s Zero length: %s hash: %s extranonce %s "%(now, num_zeros, hash, ctx.extranonce2))
             elif hash.startswith('0000') and random_nonce:
                 now = datetime.now()
@@ -202,24 +166,18 @@ def bitcoin_miner(t):
                 sys.stdout.flush()
 
             if not random_nonce:
-                # hash meter, only works with regular nonce.
                 last_updated = calculate_hashrate(nNonce, last_updated)
 
-            if hash < target :
-                logg('[*] Block solved.'.format())
-                logg('[*] Block hash: {}'.format(hash))
-                logg('[*] Blockheader: {}'.format(blockheader))            
+            if hash < target :       
                 payload = bytes('{"params": ["'+address+'", "'+ctx.job_id+'", "'+ctx.extranonce2 \
                     +'", "'+ctx.ntime+'", "'+nonce+'"], "id": 1, "method": "mining.submit"}\n', 'utf-8')
-                logg('[*] Payload: {}'.format(payload))
+                print("\rpayload: %s hash: %s blockheader %s "%(payload, hash, blockheader))
                 ctx.sock.sendall(payload)
                 ret = ctx.sock.recv(1024)
-                logg('[*] Pool response: {}'.format(ret))
+                print("\response: %s "%(ret))
                 return True
             
-            # increment nonce by 1, in case we don't want random 
             nNonce +=1
-
             if cycleBack == maxCycle :
                 break
 
@@ -229,23 +187,20 @@ def bitcoin_miner(t):
 
 def block_listener(t):
     firstLoad = True
-    exitStat = False
+    global address
 
-    while not exitStat:
+    while True:
         last_change_time = time.time() 
         breakStat = False
         breakStat2 = False
 
         try:
-            # init a connection to ckpool 
             sock  = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.connect(('solo.ckpool.org', 3333))
-            # send a handle subscribe message 
             sock.sendall(b'{"id": 1, "method": "mining.subscribe", "params": []}\n')
             lines = sock.recv(1024).decode().split('\n')
             response = json.loads(lines[0])
             ctx.sub_details,ctx.extranonce1,ctx.extranonce2_size = response['result']
-            # send and handle authorize message  
             sock.sendall(b'{"params": ["'+address.encode()+b'", "password"], "id": 2, "method": "mining.authorize"}\n')
             response = b''
             while response.count(b'\n') < 4 and not(b'mining.notify' in response):
@@ -262,30 +217,22 @@ def block_listener(t):
         
         if not breakStat:
             last_change_time = time.time() 
-
             responses = [json.loads(res) for res in response.decode().split('\n') if len(res.strip())>0 and 'mining.notify' in res]
             ctx.job_id, ctx.prevhash, ctx.coinb1, ctx.coinb2, ctx.merkle_branch, ctx.version, ctx.nbits, ctx.ntime, ctx.clean_jobs = responses[0]['params']
-
             ctx.prevHashLE = rev8(ctx.prevhash)
             ctx.versionLE = int(ctx.version, 16)
             ctx.ntimeLE = int(ctx.ntime, 16)
             ctx.nbitsLE = int(ctx.nbits, 16)
-
-            # do this one time, will be overwriten by mining loop when new block is detected
             if firstLoad:
                 firstLoad = False
                 ctx.updatedPrevHash = ctx.prevhash
 
-            # set sock 
             ctx.sock = sock 
-
             while True:
                 t.check_self_shutdown()
                 if t.exit:
-                    exitStat = True
                     break
 
-                # check for new block 
                 response = b''
                 while response.count(b'\n') < 4 and not(b'mining.notify' in response):
                     response += sock.recv(1024)
@@ -300,8 +247,6 @@ def block_listener(t):
                     responses = [json.loads(res) for res in response.decode().split('\n') if len(res.strip())>0 and 'mining.notify' in res]     
 
                     if responses[0]['params'][1] != ctx.prevhash:
-                        # new block detected on network 
-                        # update context job data 
                         ctx.job_id, ctx.prevhash, ctx.coinb1, ctx.coinb2, ctx.merkle_branch, ctx.version, ctx.nbits, ctx.ntime, ctx.clean_jobs = responses[0]['params']
                 
                 else:
