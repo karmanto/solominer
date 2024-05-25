@@ -3,3 +3,4 @@
 .env
 go_solo_block
 __pycache__/
+*.exe
