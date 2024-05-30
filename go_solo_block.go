@@ -157,7 +157,7 @@ func main() {
 	arg := os.Args[1]
 	argmnt, err1 := strconv.Atoi(arg)
 	max_cycle, err2 := strconv.Atoi(max_cycle_string)
-	if err1 == nil && err2 == nil && max_cycle >= 100000 && max_cycle <= 4294967295 {
+	if err1 == nil && err2 == nil && max_cycle >= 75000 && max_cycle <= 4294967295 {
 		for {
 			if checkStat(argmnt, dir) {
 				errorStat = true
