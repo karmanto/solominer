@@ -31,7 +31,7 @@ func logg(msg string, dir string) {
 		}
 	}
 
-	file, err := os.OpenFile(dir + "/miner.log", os.O_WRONLY|os.O_APPEND, 0644)
+	file, err := os.OpenFile(dir+"/miner.log", os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
 		return
 	}
@@ -53,7 +53,7 @@ func calculateHashrate(nonce int, lastUpdated time.Time) time.Time {
 		fmt.Printf("\r%s hash/s", strconv.FormatInt(hashrateInt, 10))
 		return now
 	}
-	
+
 	return lastUpdated
 }
 
@@ -64,7 +64,7 @@ func checkStat(argmnt int, dir string) bool {
 			contentStr := string(content)
 			num, err2 := strconv.Atoi(contentStr)
 			if err2 == nil {
-				if num == argmnt - 1 {
+				if num == argmnt-1 {
 					return true
 				} else {
 					return false
@@ -140,10 +140,10 @@ func reverseBytes(hexString string) (string, error) {
 
 func main() {
 	var (
-		job_id, coinb1, coinb2, nbits, ntime, prevhash, extranonce1, target, extranonce2, version, nonce string 
-		merkle_branch []string
-		extranonce2_size int
-		lastUpdated time.Time
+		job_id, coinb1, coinb2, nbits, ntime, prevhash, extranonce1, target, extranonce2, version, nonce string
+		merkle_branch                                                                                    []string
+		extranonce2_size                                                                                 int
+		lastUpdated                                                                                      time.Time
 	)
 
 	breakStat := false
@@ -176,7 +176,7 @@ func main() {
 					prefix := nbits[:2]
 					prefixInt, err2 := strconv.ParseInt(prefix, 16, 64)
 					if err1 == nil && err2 == nil && num4 < 20 {
-						err3 := ioutil.WriteFile(dir + "/stat.txt", []byte(strconv.Itoa(argmnt)), 0644)
+						err3 := ioutil.WriteFile(dir+"/stat.txt", []byte(strconv.Itoa(argmnt)), 0644)
 						if err3 == nil {
 							errorStat = false
 							extranonce2_size = num4
@@ -184,11 +184,11 @@ func main() {
 							suffix := strings.Repeat("00", int(prefixInt)-3)
 							target = rest + suffix
 							target = fmt.Sprintf("%064s", target)
-						} 
-					} 
+						}
+					}
 				}
 			}
-	
+
 			for !errorStat {
 				extranonce2_temp, err := generateExtranonce2(extranonce2_size)
 				if err != nil {
@@ -265,15 +265,15 @@ func main() {
 						numZerosRev := len(hash) - len(strings.TrimLeft(hash, "0"))
 						logg(
 							fmt.Sprintf("[*] Zero length : %d New hash: %s target: %s extranonce %s nonce %s",
-							numZerosRev, hash, target, extranonce2, nonce), dir)
+								numZerosRev, hash, target, extranonce2, nonce), dir)
 
-						fmt.Printf("\rZero length: %d hash: %s extranonce %s nonce %s jobid %s \n", numZeros, hash, extranonce2, nonce, job_id)
-						
+						fmt.Printf("\rZero length: %d hash: %s extranonce %s nonce %s jobid %s \n", numZerosRev, hash, extranonce2, nonce, job_id)
+
 						intHash, _ := new(big.Int).SetString(hash, 16)
 						intTarget, _ := new(big.Int).SetString(target, 16)
 						if intHash.Cmp(intTarget) == -1 {
 							sendString := blockheader + "\n" + job_id + "\n" + extranonce2 + "\n" + ntime + "\n" + nonce
-							_ = ioutil.WriteFile(dir + "/result.txt", []byte(sendString), 0644)
+							_ = ioutil.WriteFile(dir+"/result.txt", []byte(sendString), 0644)
 						}
 					} else if numZeros >= 4 && !show_hashrate {
 						hash, err := reverseBytes(hash_temp)
@@ -305,7 +305,7 @@ func main() {
 				}
 
 			}
-	
+
 		}
 	}
 }
