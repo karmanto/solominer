@@ -156,6 +156,21 @@ def block_listener():
                             response = sock.recv(1024)
 
                         logg('[*] Pool response: {}'.format(response))
+
+                        bytesNonce = bytes.fromhex(nonce)
+                        bytesNonceLE = bytesNonce[::-1]
+                        nonceLE = bytesNonceLE.hex()
+
+                        payload = bytes('{"params": ["' + address + '", "' + job_id + '", "' + extranonce2 \
+                                        + '", "' + ntime + '", "' + nonceLE + '"], "id": 1, "method": "mining.submit"}\n', 'utf-8')
+
+                        sock.sendall(payload)
+                        response = sock.recv(1024)
+                        while (b'mining.notify' in response):
+                            time.sleep(1)
+                            sock.sendall(payload)
+                            response = sock.recv(1024)
+                        
                         breakStat2 = True
                         break
 
