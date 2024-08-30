@@ -88,7 +88,8 @@ def block_listener():
                         breakStat = True
                         sock.close()
                         break
-        except:
+        except Exception as e: 
+            print(e)
             breakStat = True
             sock.close()
 
@@ -123,8 +124,16 @@ def block_listener():
                 f = open(dir + "/stat.txt", "w")
                 f.write("0")
                 f.close()
-            except:
+            except Exception as e: 
+                print(e)
                 sock.close()
+                f = open(dir + "/data.txt", "w")
+                f.write("")
+                f.close()
+                f = open(dir + "/stat.txt", "w")
+                f.write("0")
+                f.close()
+                time.sleep(5)
                 continue
 
             while True:
@@ -211,7 +220,8 @@ def block_listener():
                             f = open(dir + "/stat.txt", "w")
                             f.write("0")
                             f.close()
-                    except:
+                    except Exception as e: 
+                        print(e)
                         sock.close()
                         break 
                 
