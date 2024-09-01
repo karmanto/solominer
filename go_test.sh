@@ -21,10 +21,13 @@ run_python_files() {
 
   for i in $(seq 1 $1)
   do
-    $DIRECTORY/go_solo_block $i &
+    core=$(( (i-1) % 4 ))
+    
+    taskset -c $core $DIRECTORY/go_solo_block $i &
     pids[${i}]=$!
   done
 }
+
 
 # Fungsi untuk menghentikan file Python
 kill_python_files() {
