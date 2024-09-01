@@ -10,12 +10,12 @@ import time
 from datetime import datetime
 import os
 import threading
-
+from time import strftime
 
 
 def load_env(file_path):
-    script_dir = os.path.dirname(os.path.abspath(__file__)) 
-    env_path = os.path.join(script_dir, file_path) 
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    env_path = os.path.join(script_dir, file_path)
     with open(env_path) as f:
         for line in f:
             if line.strip() and not line.startswith("#"):
@@ -63,13 +63,13 @@ def block_listener():
 
         time.sleep(5)
 
-        last_change_time = time.time() 
+        last_change_time = time.time()
         breakStat = False
         breakStat2 = False
         extranonce2_size = 8
         extranonce1 = ""
 
-        try: 
+        try:
             sock  = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.connect(('solo.ckpool.org', 3333))
             sock.sendall(b'{"id": 1, "method": "mining.subscribe", "params": []}\n')
@@ -88,14 +88,13 @@ def block_listener():
                         breakStat = True
                         sock.close()
                         break
-        except Exception as e: 
+        except Exception as e:
             print(e)
             breakStat = True
             sock.close()
 
-        
         if not breakStat:
-            last_change_time = time.time() 
+            last_change_time = time.time()
             try:
                 responses = [json.loads(res) for res in response.decode().split('\n') if len(res.strip())>0 and 'mining.notify' in res]
                 job_id, prevhash, coinb1, coinb2, merkle_branch, version, nbits, ntime, clean_jobs = responses[0]['params']
@@ -117,14 +116,15 @@ def block_listener():
                 dataWrite += str(ntimeLE) + "\n"
                 dataWrite += str(nbitsLE) + "\n"
                 dataWrite += str(extranonce2_size) + "\n"
-                dataWrite += extranonce1
+                dataWrite += extranonce1 + "\n"
+                dataWrite += strftime('%Y-%m-%d %H:%M:%S')
                 f = open(dir + "/data.txt", "w")
                 f.write(dataWrite)
                 f.close()
                 f = open(dir + "/stat.txt", "w")
                 f.write("0")
                 f.close()
-            except Exception as e: 
+            except Exception as e:
                 print(e)
                 sock.close()
                 f = open(dir + "/data.txt", "w")
@@ -179,7 +179,7 @@ def block_listener():
                             time.sleep(1)
                             sock.sendall(payload)
                             response = sock.recv(1024)
-                        
+
                         breakStat2 = True
                         break
 
@@ -189,10 +189,16 @@ def block_listener():
 
                     response += sock.recv(1024)
 
+                    dataWrite2 = str(responses) + "\n"
+                    dataWrite2 += strftime('%Y-%m-%d %H:%M:%S')
+                    f = open(dir + "/response.txt", "w")
+                    f.write(dataWrite2)
+                    f.close()
+                            
                 if not breakStat2 :
-                    last_change_time = time.time() 
+                    last_change_time = time.time()
                     try:
-                        responses = [json.loads(res) for res in response.decode().split('\n') if len(res.strip())>0 and 'mining.notify' in res]    
+                        responses = [json.loads(res) for res in response.decode().split('\n') if len(res.strip())>0 and 'mining.notify' in res]
                         if responses[0]['params'][1] != prevhash:
                             job_id, prevhash, coinb1, coinb2, merkle_branch, version, nbits, ntime, clean_jobs = responses[0]['params']
                             prevHashLE = rev8(prevhash)
@@ -213,18 +219,25 @@ def block_listener():
                             dataWrite += str(ntimeLE) + "\n"
                             dataWrite += str(nbitsLE) + "\n"
                             dataWrite += str(extranonce2_size) + "\n"
-                            dataWrite += extranonce1
+                            dataWrite += extranonce1 + "\n"
+                            dataWrite += strftime('%Y-%m-%d %H:%M:%S')
                             f = open(dir + "/data.txt", "w")
                             f.write(dataWrite)
                             f.close()
                             f = open(dir + "/stat.txt", "w")
                             f.write("0")
                             f.close()
-                    except Exception as e: 
+                            
+                        dataWrite2 = str(responses) + "\n"
+                        dataWrite2 += strftime('%Y-%m-%d %H:%M:%S')
+                        f = open(dir + "/response.txt", "w")
+                        f.write(dataWrite2)
+                        f.close()
+                    except Exception as e:
                         print(e)
                         sock.close()
-                        break 
-                
+                        break
+
                 else:
                     sock.close()
                     break

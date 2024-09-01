@@ -140,7 +140,7 @@ func reverseBytes(hexString string) (string, error) {
 
 func main() {
 	var (
-		job_id, coinb1, coinb2, nbits, ntime, prevhash, extranonce1, target, extranonce2, version, nonce string
+		job_id, coinb1, coinb2, nbits, ntime, prevhash, extranonce1, target, extranonce2, version, nonce, last_time string
 		merkle_branch                                                                                    []string
 		extranonce2_size                                                                                 int
 		lastUpdated                                                                                      time.Time
@@ -162,7 +162,7 @@ func main() {
 			if checkStat(argmnt, dir) {
 				errorStat = true
 				lines := strings.Split(getData(dir), "\n")
-				if len(lines) >= 15 {
+				if len(lines) >= 16 {
 					job_id = lines[0]
 					coinb1 = lines[2]
 					coinb2 = lines[3]
@@ -172,6 +172,7 @@ func main() {
 					ntime = lines[7]
 					prevhash = lines[9]
 					extranonce1 = lines[14]
+					last_time = lines[15]
 					num4, err1 := strconv.Atoi(lines[13])
 					prefix := nbits[:2]
 					prefixInt, err2 := strconv.ParseInt(prefix, 16, 64)
@@ -267,7 +268,7 @@ func main() {
 							fmt.Sprintf("[*] Zero length : %d New hash: %s target: %s extranonce %s nonce %s",
 								numZerosRev, hash, target, extranonce2, nonce), dir)
 
-						fmt.Printf("\rZero length: %d hash: %s extranonce %s nonce %s jobid %s \n", numZerosRev, hash, extranonce2, nonce, job_id)
+						fmt.Printf("\rZero length: %d hash: %s extranonce %s nonce %s jobid %s last_time %s \n", numZerosRev, hash, extranonce2, nonce, job_id, last_time)
 
 						intHash, _ := new(big.Int).SetString(hash, 16)
 						intTarget, _ := new(big.Int).SetString(target, 16)
@@ -283,7 +284,7 @@ func main() {
 						}
 
 						numZerosRev := len(hash) - len(strings.TrimLeft(hash, "0"))
-						fmt.Printf("\rZero length: %d hash: %s extranonce %s nonce %s jobid %s ", numZerosRev, hash, extranonce2, nonce, job_id)
+						fmt.Printf("\rZero length: %d hash: %s extranonce %s nonce %s jobid %s last_time %s ", numZerosRev, hash, extranonce2, nonce, job_id, last_time)
 					}
 
 					if show_hashrate {
