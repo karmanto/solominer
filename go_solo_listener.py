@@ -64,6 +64,7 @@ def block_listener():
         time.sleep(5)
 
         last_change_time = time.time()
+        last_change_time2 = time.time()
         breakStat = False
         breakStat2 = False
         extranonce2_size = 8
@@ -184,7 +185,7 @@ def block_listener():
                         breakStat2 = True
                         break
 
-                    if time.time() - last_change_time > 1200:
+                    if time.time() - last_change_time > 60:
                         breakStat2 = True
                         break
 
@@ -194,7 +195,8 @@ def block_listener():
                     last_change_time = time.time()
                     try:
                         responses = [json.loads(res) for res in response.decode().split('\n') if len(res.strip())>0 and 'mining.notify' in res]
-                        if responses[0]['params'][0] != job_id:
+                        if responses[0]['params'][1] != prevhash:
+                            last_change_time2 = time.time()
                             job_id, prevhash, coinb1, coinb2, merkle_branch, version, nbits, ntime, clean_jobs = responses[0]['params']
                             prevHashLE = rev8(prevhash)
                             versionLE = int(version, 16)
@@ -230,6 +232,10 @@ def block_listener():
 
                 else:
                     sock.close()
+                    break
+
+                if time.time() - last_change_time2 > 1200:
+                    breakStat2 = True
                     break
 
 block_listener()
