@@ -78,7 +78,8 @@ def block_listener():
             sub_details,extranonce1,extranonce2_size = response['result']
             intExtraNonce2_size = int(extranonce2_size)
             if intExtraNonce2_size > 20:
-                extranonce2_size = 8
+                breakStat = True
+                sock.close()
             else:
                 sock.sendall(b'{"params": ["'+address.encode()+b'", "password"], "id": 2, "method": "mining.authorize"}\n')
                 response = b''
@@ -188,18 +189,12 @@ def block_listener():
                         break
 
                     response += sock.recv(1024)
-
-                    dataWrite2 = str(responses) + "\n"
-                    dataWrite2 += strftime('%Y-%m-%d %H:%M:%S')
-                    f = open(dir + "/response.txt", "w")
-                    f.write(dataWrite2)
-                    f.close()
                             
                 if not breakStat2 :
                     last_change_time = time.time()
                     try:
                         responses = [json.loads(res) for res in response.decode().split('\n') if len(res.strip())>0 and 'mining.notify' in res]
-                        if responses[0]['params'][1] != prevhash:
+                        if responses[0]['params'][0] != job_id:
                             job_id, prevhash, coinb1, coinb2, merkle_branch, version, nbits, ntime, clean_jobs = responses[0]['params']
                             prevHashLE = rev8(prevhash)
                             versionLE = int(version, 16)
@@ -228,11 +223,6 @@ def block_listener():
                             f.write("0")
                             f.close()
                             
-                        dataWrite2 = str(responses) + "\n"
-                        dataWrite2 += strftime('%Y-%m-%d %H:%M:%S')
-                        f = open(dir + "/response.txt", "w")
-                        f.write(dataWrite2)
-                        f.close()
                     except Exception as e:
                         print(e)
                         sock.close()

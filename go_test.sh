@@ -1,5 +1,4 @@
 #!/bin/bash
-
 # Fungsi untuk memeriksa koneksi internet
 check_internet() {
   curl -s --head --fail google.com > /dev/null
