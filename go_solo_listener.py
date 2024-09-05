@@ -235,7 +235,7 @@ def block_listener():
                     break
 
                 if time.time() - last_change_time2 > 1200:
-                    breakStat2 = True
+                    sock.close()
                     break
 
 block_listener()
