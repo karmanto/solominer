@@ -44,6 +44,12 @@ def rev8(item):
     item = ''.join([item[i:i + 8][::-1] for i in range(0, len(item), 8)])
     return item
 
+def forceRestart():
+    f = open(dir + "/forceRestart.txt", "w")
+    f.write("1")
+    f.close()
+    while True:
+        pass
 
 
 def block_listener():
@@ -61,12 +67,8 @@ def block_listener():
         f.write("")
         f.close()
 
-        time.sleep(5)
-
         last_change_time = time.time()
         last_change_time2 = time.time()
-        breakStat = False
-        breakStat2 = False
         extranonce2_size = 8
         extranonce1 = ""
 
@@ -79,163 +81,149 @@ def block_listener():
             sub_details,extranonce1,extranonce2_size = response['result']
             intExtraNonce2_size = int(extranonce2_size)
             if intExtraNonce2_size > 20:
-                breakStat = True
-                sock.close()
+                #print("\ntaining attack 1")
+                forceRestart()
             else:
                 sock.sendall(b'{"params": ["'+address.encode()+b'", "password"], "id": 2, "method": "mining.authorize"}\n')
                 response = b''
                 while response.count(b'\n') < 4 and not(b'mining.notify' in response):
                     response += sock.recv(1024)
-                    if time.time() - last_change_time > 30:
-                        breakStat = True
-                        sock.close()
-                        break
+                    if time.time() - last_change_time > 60:  
+                        #print("\ntaining attack 2")
+                        forceRestart()
         except Exception as e:
-            print(e)
-            breakStat = True
-            sock.close()
+            #print("\ntaining attack 3")
+            forceRestart()
 
-        if not breakStat:
+        last_change_time = time.time()
+        try:
+            responses = [json.loads(res) for res in response.decode().split('\n') if len(res.strip())>0 and 'mining.notify' in res]
+            job_id, prevhash, coinb1, coinb2, merkle_branch, version, nbits, ntime, clean_jobs = responses[0]['params']
+            prevHashLE = rev8(prevhash)
+            versionLE = int(version, 16)
+            ntimeLE = int(ntime, 16)
+            nbitsLE = int(nbits, 16)
+            dataWrite = job_id + "\n"
+            dataWrite += prevhash + "\n"
+            dataWrite += coinb1 + "\n"
+            dataWrite += coinb2 + "\n"
+            dataWrite += ",".join(merkle_branch) + "\n"
+            dataWrite += version + "\n"
+            dataWrite += nbits + "\n"
+            dataWrite += ntime + "\n"
+            dataWrite += str(clean_jobs) + "\n"
+            dataWrite += prevHashLE + "\n"
+            dataWrite += str(versionLE) + "\n"
+            dataWrite += str(ntimeLE) + "\n"
+            dataWrite += str(nbitsLE) + "\n"
+            dataWrite += str(extranonce2_size) + "\n"
+            dataWrite += extranonce1 + "\n"
+            dataWrite += strftime('%Y-%m-%d %H:%M:%S')
+            f = open(dir + "/data.txt", "w")
+            f.write(dataWrite)
+            f.close()
+            f = open(dir + "/stat.txt", "w")
+            f.write("0")
+            f.close()
+        except Exception as e:  
+            #print("\ntaining attack 4")
+            forceRestart()
+
+        while True:
+            response = b''
+            while response.count(b'\n') < 4 and not(b'mining.notify' in response):
+                f = open(dir + "/result.txt", "r")
+                result = f.read()
+                f.close()
+                if result and len(result.splitlines()) >= 5:
+                    f = open(dir + "/stat.txt", "w")
+                    f.write("999")
+                    f.close()
+                    lines = result.splitlines()
+                    blockheader = lines[0]
+                    job_id = lines[1]
+                    extranonce2 = lines[2]
+                    ntime = lines[3]
+                    nonce = lines[4]
+                    logg('[*] Block solved on jobId {}.'.format(job_id))
+                    logg('[*] Blockheader: {}'.format(blockheader))
+                    payload = bytes('{"params": ["' + address + '", "' + job_id + '", "' + extranonce2 \
+                                    + '", "' + ntime + '", "' + nonce + '"], "id": 1, "method": "mining.submit"}\n', 'utf-8')
+                    logg('[*] Payload: {}'.format(payload))
+                    sock.sendall(payload)
+                    response = sock.recv(1024)
+                    while (b'mining.notify' in response):
+                        time.sleep(1)
+                        sock.sendall(payload)
+                        response = sock.recv(1024)
+
+                    logg('[*] Pool response: {}'.format(response))
+
+                    bytesNonce = bytes.fromhex(nonce)
+                    bytesNonceLE = bytesNonce[::-1]
+                    nonceLE = bytesNonceLE.hex()
+
+                    payload = bytes('{"params": ["' + address + '", "' + job_id + '", "' + extranonce2 \
+                                    + '", "' + ntime + '", "' + nonceLE + '"], "id": 1, "method": "mining.submit"}\n', 'utf-8')
+
+                    sock.sendall(payload)
+                    response = sock.recv(1024)
+                    while (b'mining.notify' in response):
+                        time.sleep(1)
+                        sock.sendall(payload)
+                        response = sock.recv(1024)
+                    #print("\ntaining attack 5")
+                    forceRestart()
+
+                if time.time() - last_change_time > 60:
+                    #print("\ntaining attack 6")
+                    forceRestart()
+
+                try:
+                    response += sock.recv(1024)
+                except Exception as e:
+                    #print("\ntaining attack 7")
+                    forceRestart()
+                        
             last_change_time = time.time()
+
             try:
                 responses = [json.loads(res) for res in response.decode().split('\n') if len(res.strip())>0 and 'mining.notify' in res]
-                job_id, prevhash, coinb1, coinb2, merkle_branch, version, nbits, ntime, clean_jobs = responses[0]['params']
-                prevHashLE = rev8(prevhash)
-                versionLE = int(version, 16)
-                ntimeLE = int(ntime, 16)
-                nbitsLE = int(nbits, 16)
-                dataWrite = job_id + "\n"
-                dataWrite += prevhash + "\n"
-                dataWrite += coinb1 + "\n"
-                dataWrite += coinb2 + "\n"
-                dataWrite += ",".join(merkle_branch) + "\n"
-                dataWrite += version + "\n"
-                dataWrite += nbits + "\n"
-                dataWrite += ntime + "\n"
-                dataWrite += str(clean_jobs) + "\n"
-                dataWrite += prevHashLE + "\n"
-                dataWrite += str(versionLE) + "\n"
-                dataWrite += str(ntimeLE) + "\n"
-                dataWrite += str(nbitsLE) + "\n"
-                dataWrite += str(extranonce2_size) + "\n"
-                dataWrite += extranonce1 + "\n"
-                dataWrite += strftime('%Y-%m-%d %H:%M:%S')
-                f = open(dir + "/data.txt", "w")
-                f.write(dataWrite)
-                f.close()
-                f = open(dir + "/stat.txt", "w")
-                f.write("0")
-                f.close()
-            except Exception as e:
-                print(e)
-                sock.close()
-                f = open(dir + "/data.txt", "w")
-                f.write("")
-                f.close()
-                f = open(dir + "/stat.txt", "w")
-                f.write("0")
-                f.close()
-                time.sleep(5)
-                continue
-
-            while True:
-                response = b''
-                while response.count(b'\n') < 4 and not(b'mining.notify' in response):
-                    f = open(dir + "/result.txt", "r")
-                    result = f.read()
+                if responses[0]['params'][1] != prevhash:
+                    last_change_time2 = time.time()
+                    job_id, prevhash, coinb1, coinb2, merkle_branch, version, nbits, ntime, clean_jobs = responses[0]['params']
+                    prevHashLE = rev8(prevhash)
+                    versionLE = int(version, 16)
+                    ntimeLE = int(ntime, 16)
+                    nbitsLE = int(nbits, 16)
+                    dataWrite = job_id + "\n"
+                    dataWrite += prevhash + "\n"
+                    dataWrite += coinb1 + "\n"
+                    dataWrite += coinb2 + "\n"
+                    dataWrite += ",".join(merkle_branch) + "\n"
+                    dataWrite += version + "\n"
+                    dataWrite += nbits + "\n"
+                    dataWrite += ntime + "\n"
+                    dataWrite += str(clean_jobs) + "\n"
+                    dataWrite += prevHashLE + "\n"
+                    dataWrite += str(versionLE) + "\n"
+                    dataWrite += str(ntimeLE) + "\n"
+                    dataWrite += str(nbitsLE) + "\n"
+                    dataWrite += str(extranonce2_size) + "\n"
+                    dataWrite += extranonce1 + "\n"
+                    dataWrite += strftime('%Y-%m-%d %H:%M:%S')
+                    f = open(dir + "/data.txt", "w")
+                    f.write(dataWrite)
                     f.close()
-                    if result and len(result.splitlines()) >= 5:
-                        f = open(dir + "/stat.txt", "w")
-                        f.write("999")
-                        f.close()
-                        lines = result.splitlines()
-                        blockheader = lines[0]
-                        job_id = lines[1]
-                        extranonce2 = lines[2]
-                        ntime = lines[3]
-                        nonce = lines[4]
-                        logg('[*] Block solved on jobId {}.'.format(job_id))
-                        logg('[*] Blockheader: {}'.format(blockheader))
-                        payload = bytes('{"params": ["' + address + '", "' + job_id + '", "' + extranonce2 \
-                                        + '", "' + ntime + '", "' + nonce + '"], "id": 1, "method": "mining.submit"}\n', 'utf-8')
-                        logg('[*] Payload: {}'.format(payload))
-                        sock.sendall(payload)
-                        response = sock.recv(1024)
-                        while (b'mining.notify' in response):
-                            time.sleep(1)
-                            sock.sendall(payload)
-                            response = sock.recv(1024)
+                    f = open(dir + "/stat.txt", "w")
+                    f.write("0")
+                    f.close()
+            except Exception as e:
+                #print("\ntaining attack 8")
+                forceRestart()
 
-                        logg('[*] Pool response: {}'.format(response))
-
-                        bytesNonce = bytes.fromhex(nonce)
-                        bytesNonceLE = bytesNonce[::-1]
-                        nonceLE = bytesNonceLE.hex()
-
-                        payload = bytes('{"params": ["' + address + '", "' + job_id + '", "' + extranonce2 \
-                                        + '", "' + ntime + '", "' + nonceLE + '"], "id": 1, "method": "mining.submit"}\n', 'utf-8')
-
-                        sock.sendall(payload)
-                        response = sock.recv(1024)
-                        while (b'mining.notify' in response):
-                            time.sleep(1)
-                            sock.sendall(payload)
-                            response = sock.recv(1024)
-
-                        breakStat2 = True
-                        break
-
-                    if time.time() - last_change_time > 60:
-                        breakStat2 = True
-                        break
-
-                    response += sock.recv(1024)
-                            
-                if not breakStat2 :
-                    last_change_time = time.time()
-                    try:
-                        responses = [json.loads(res) for res in response.decode().split('\n') if len(res.strip())>0 and 'mining.notify' in res]
-                        if responses[0]['params'][1] != prevhash:
-                            last_change_time2 = time.time()
-                            job_id, prevhash, coinb1, coinb2, merkle_branch, version, nbits, ntime, clean_jobs = responses[0]['params']
-                            prevHashLE = rev8(prevhash)
-                            versionLE = int(version, 16)
-                            ntimeLE = int(ntime, 16)
-                            nbitsLE = int(nbits, 16)
-                            dataWrite = job_id + "\n"
-                            dataWrite += prevhash + "\n"
-                            dataWrite += coinb1 + "\n"
-                            dataWrite += coinb2 + "\n"
-                            dataWrite += ",".join(merkle_branch) + "\n"
-                            dataWrite += version + "\n"
-                            dataWrite += nbits + "\n"
-                            dataWrite += ntime + "\n"
-                            dataWrite += str(clean_jobs) + "\n"
-                            dataWrite += prevHashLE + "\n"
-                            dataWrite += str(versionLE) + "\n"
-                            dataWrite += str(ntimeLE) + "\n"
-                            dataWrite += str(nbitsLE) + "\n"
-                            dataWrite += str(extranonce2_size) + "\n"
-                            dataWrite += extranonce1 + "\n"
-                            dataWrite += strftime('%Y-%m-%d %H:%M:%S')
-                            f = open(dir + "/data.txt", "w")
-                            f.write(dataWrite)
-                            f.close()
-                            f = open(dir + "/stat.txt", "w")
-                            f.write("0")
-                            f.close()
-                            
-                    except Exception as e:
-                        print(e)
-                        sock.close()
-                        break
-
-                else:
-                    sock.close()
-                    break
-
-                if time.time() - last_change_time2 > 1200:
-                    sock.close()
-                    break
+            if time.time() - last_change_time2 > 1200:
+                #print("\ntaining attack 9")
+                forceRestart()
 
 block_listener()
