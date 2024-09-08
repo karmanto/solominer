@@ -2,17 +2,10 @@
 
 check_internet() {
   curl -s --head --fail google.com > /dev/null
-  return $?
-}
-
-check_force_restart() {
-  if [ -f "$DIRECTORY/forceRestart.txt" ]; then
-    if [ "$(cat "$DIRECTORY/forceRestart.txt")" -eq 1 ]; then
-      echo "0" > "$DIRECTORY/forceRestart.txt"
-      return 1
-    fi
+  if [ $? -ne 0 ]; then
+    printf "\rKoneksi internet terputus. Menghentikan file Python dan Go...                                                                                                                            "
   fi
-  return 0
+  return $?
 }
 
 run_python_files() {
@@ -48,19 +41,42 @@ on_exit() {
   exit
 }
 
+check_time_difference() {
+  last_line=$(tail -n 1 "$DIRECTORY/data.txt")
+
+  last_time=$(date -d "$last_line" +%s 2>/dev/null)
+
+  if [ $? -ne 0 ]; then
+    printf \r"Baris terakhir bukan datetime yang valid. Restart file Python dan Go...                                                                                                                  "
+    return 1
+  fi
+
+  current_time=$(date +%s)
+  time_diff=$(( (current_time - last_time) / 60 ))
+
+  if [ $time_diff -gt 20 ]; then
+    printf "\rWaktu socket lebih dari 20 menit dari waktu sekarang. Restart file Python dan Go...                                                                                                      "
+    return 1
+  fi
+
+  return 0
+}
+
 trap on_exit SIGINT
 
 DIRECTORY="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
 
 while true; do
-  if check_internet && check_force_restart; then
-    printf "\rInternet tersedia dan forceRestart tidak aktif. Menjalankan file Python dan Go...                                                                                                        "
+  if check_internet; then
+    printf "\rInternet tersedia. Menjalankan file Python dan Go...                                                                                                                                     "
     run_python_files $1
-    while check_internet && check_force_restart; do
+    sleep 5
+
+    while check_internet && check_time_difference; do
       sleep 5
     done
+
     kill_python_files
-    printf "\rKoneksi internet terputus atau forceRestart aktif. Menghentikan file Python dan Go...                                                                                                    "
   else
     sleep 5
   fi

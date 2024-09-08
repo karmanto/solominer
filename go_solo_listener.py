@@ -2,14 +2,12 @@
 # file license http://www.opensource.org/licenses/mit-license.php.
 
 
-
 import socket
 import time
 import json
 import time
 from datetime import datetime
 import os
-import threading
 from time import strftime
 
 
@@ -25,10 +23,8 @@ def load_env(file_path):
 load_env('.env')
 
 
-
 address = os.getenv("ADDRESS", "1NStyxyH5hFc3Bj7d4D2VKktx2bqdVuEBF")
 dir = os.getenv("DIRECTORY", "")
-
 
 
 def logg(msg):
@@ -38,18 +34,10 @@ def logg(msg):
         file.write(f'{timestamp} {msg}\n')
 
 
-
 def rev8(item):
     item = item[::-1]
     item = ''.join([item[i:i + 8][::-1] for i in range(0, len(item), 8)])
     return item
-
-def forceRestart():
-    f = open(dir + "/forceRestart.txt", "w")
-    f.write("1")
-    f.close()
-    while True:
-        pass
 
 
 def block_listener():
@@ -67,67 +55,48 @@ def block_listener():
         f.write("")
         f.close()
 
-        last_change_time = time.time()
-        last_change_time2 = time.time()
         extranonce2_size = 8
         extranonce1 = ""
 
-        try:
-            sock  = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.connect(('solo.ckpool.org', 3333))
-            sock.sendall(b'{"id": 1, "method": "mining.subscribe", "params": []}\n')
-            lines = sock.recv(1024).decode().split('\n')
-            response = json.loads(lines[0])
-            sub_details,extranonce1,extranonce2_size = response['result']
-            intExtraNonce2_size = int(extranonce2_size)
-            if intExtraNonce2_size > 20:
-                #print("\ntaining attack 1")
-                forceRestart()
-            else:
-                sock.sendall(b'{"params": ["'+address.encode()+b'", "password"], "id": 2, "method": "mining.authorize"}\n')
-                response = b''
-                while response.count(b'\n') < 4 and not(b'mining.notify' in response):
-                    response += sock.recv(1024)
-                    if time.time() - last_change_time > 60:  
-                        #print("\ntaining attack 2")
-                        forceRestart()
-        except Exception as e:
-            #print("\ntaining attack 3")
-            forceRestart()
+        sock  = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.connect(('solo.ckpool.org', 3333))
+        sock.sendall(b'{"id": 1, "method": "mining.subscribe", "params": []}\n')
+        lines = sock.recv(1024).decode().split('\n')
+        response = json.loads(lines[0])
+        sub_details,extranonce1,extranonce2_size = response['result']
+        sock.sendall(b'{"params": ["'+address.encode()+b'", "password"], "id": 2, "method": "mining.authorize"}\n')
+        response = b''
+        while response.count(b'\n') < 4 and not(b'mining.notify' in response):
+            response += sock.recv(1024)
 
-        last_change_time = time.time()
-        try:
-            responses = [json.loads(res) for res in response.decode().split('\n') if len(res.strip())>0 and 'mining.notify' in res]
-            job_id, prevhash, coinb1, coinb2, merkle_branch, version, nbits, ntime, clean_jobs = responses[0]['params']
-            prevHashLE = rev8(prevhash)
-            versionLE = int(version, 16)
-            ntimeLE = int(ntime, 16)
-            nbitsLE = int(nbits, 16)
-            dataWrite = job_id + "\n"
-            dataWrite += prevhash + "\n"
-            dataWrite += coinb1 + "\n"
-            dataWrite += coinb2 + "\n"
-            dataWrite += ",".join(merkle_branch) + "\n"
-            dataWrite += version + "\n"
-            dataWrite += nbits + "\n"
-            dataWrite += ntime + "\n"
-            dataWrite += str(clean_jobs) + "\n"
-            dataWrite += prevHashLE + "\n"
-            dataWrite += str(versionLE) + "\n"
-            dataWrite += str(ntimeLE) + "\n"
-            dataWrite += str(nbitsLE) + "\n"
-            dataWrite += str(extranonce2_size) + "\n"
-            dataWrite += extranonce1 + "\n"
-            dataWrite += strftime('%Y-%m-%d %H:%M:%S')
-            f = open(dir + "/data.txt", "w")
-            f.write(dataWrite)
-            f.close()
-            f = open(dir + "/stat.txt", "w")
-            f.write("0")
-            f.close()
-        except Exception as e:  
-            #print("\ntaining attack 4")
-            forceRestart()
+        responses = [json.loads(res) for res in response.decode().split('\n') if len(res.strip())>0 and 'mining.notify' in res]
+        job_id, prevhash, coinb1, coinb2, merkle_branch, version, nbits, ntime, clean_jobs = responses[0]['params']
+        prevHashLE = rev8(prevhash)
+        versionLE = int(version, 16)
+        ntimeLE = int(ntime, 16)
+        nbitsLE = int(nbits, 16)
+        dataWrite = job_id + "\n"
+        dataWrite += prevhash + "\n"
+        dataWrite += coinb1 + "\n"
+        dataWrite += coinb2 + "\n"
+        dataWrite += ",".join(merkle_branch) + "\n"
+        dataWrite += version + "\n"
+        dataWrite += nbits + "\n"
+        dataWrite += ntime + "\n"
+        dataWrite += str(clean_jobs) + "\n"
+        dataWrite += prevHashLE + "\n"
+        dataWrite += str(versionLE) + "\n"
+        dataWrite += str(ntimeLE) + "\n"
+        dataWrite += str(nbitsLE) + "\n"
+        dataWrite += str(extranonce2_size) + "\n"
+        dataWrite += extranonce1 + "\n"
+        dataWrite += strftime('%Y-%m-%d %H:%M:%S')
+        f = open(dir + "/data.txt", "w")
+        f.write(dataWrite)
+        f.close()
+        f = open(dir + "/stat.txt", "w")
+        f.write("0")
+        f.close()
 
         while True:
             response = b''
@@ -172,58 +141,40 @@ def block_listener():
                         time.sleep(1)
                         sock.sendall(payload)
                         response = sock.recv(1024)
-                    #print("\ntaining attack 5")
-                    forceRestart()
+                    
+                    while True:
+                        pass
 
-                if time.time() - last_change_time > 60:
-                    #print("\ntaining attack 6")
-                    forceRestart()
+                response += sock.recv(1024)
 
-                try:
-                    response += sock.recv(1024)
-                except Exception as e:
-                    #print("\ntaining attack 7")
-                    forceRestart()
-                        
-            last_change_time = time.time()
-
-            try:
-                responses = [json.loads(res) for res in response.decode().split('\n') if len(res.strip())>0 and 'mining.notify' in res]
-                if responses[0]['params'][1] != prevhash:
-                    last_change_time2 = time.time()
-                    job_id, prevhash, coinb1, coinb2, merkle_branch, version, nbits, ntime, clean_jobs = responses[0]['params']
-                    prevHashLE = rev8(prevhash)
-                    versionLE = int(version, 16)
-                    ntimeLE = int(ntime, 16)
-                    nbitsLE = int(nbits, 16)
-                    dataWrite = job_id + "\n"
-                    dataWrite += prevhash + "\n"
-                    dataWrite += coinb1 + "\n"
-                    dataWrite += coinb2 + "\n"
-                    dataWrite += ",".join(merkle_branch) + "\n"
-                    dataWrite += version + "\n"
-                    dataWrite += nbits + "\n"
-                    dataWrite += ntime + "\n"
-                    dataWrite += str(clean_jobs) + "\n"
-                    dataWrite += prevHashLE + "\n"
-                    dataWrite += str(versionLE) + "\n"
-                    dataWrite += str(ntimeLE) + "\n"
-                    dataWrite += str(nbitsLE) + "\n"
-                    dataWrite += str(extranonce2_size) + "\n"
-                    dataWrite += extranonce1 + "\n"
-                    dataWrite += strftime('%Y-%m-%d %H:%M:%S')
-                    f = open(dir + "/data.txt", "w")
-                    f.write(dataWrite)
-                    f.close()
-                    f = open(dir + "/stat.txt", "w")
-                    f.write("0")
-                    f.close()
-            except Exception as e:
-                #print("\ntaining attack 8")
-                forceRestart()
-
-            if time.time() - last_change_time2 > 1200:
-                #print("\ntaining attack 9")
-                forceRestart()
+            responses = [json.loads(res) for res in response.decode().split('\n') if len(res.strip())>0 and 'mining.notify' in res]
+            if responses[0]['params'][1] != prevhash:
+                job_id, prevhash, coinb1, coinb2, merkle_branch, version, nbits, ntime, clean_jobs = responses[0]['params']
+                prevHashLE = rev8(prevhash)
+                versionLE = int(version, 16)
+                ntimeLE = int(ntime, 16)
+                nbitsLE = int(nbits, 16)
+                dataWrite = job_id + "\n"
+                dataWrite += prevhash + "\n"
+                dataWrite += coinb1 + "\n"
+                dataWrite += coinb2 + "\n"
+                dataWrite += ",".join(merkle_branch) + "\n"
+                dataWrite += version + "\n"
+                dataWrite += nbits + "\n"
+                dataWrite += ntime + "\n"
+                dataWrite += str(clean_jobs) + "\n"
+                dataWrite += prevHashLE + "\n"
+                dataWrite += str(versionLE) + "\n"
+                dataWrite += str(ntimeLE) + "\n"
+                dataWrite += str(nbitsLE) + "\n"
+                dataWrite += str(extranonce2_size) + "\n"
+                dataWrite += extranonce1 + "\n"
+                dataWrite += strftime('%Y-%m-%d %H:%M:%S')
+                f = open(dir + "/data.txt", "w")
+                f.write(dataWrite)
+                f.close()
+                f = open(dir + "/stat.txt", "w")
+                f.write("0")
+                f.close()
 
 block_listener()
