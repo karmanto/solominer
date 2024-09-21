@@ -21,10 +21,23 @@ const jsonArray = (jsonString) => {
 }
 
 const rev8 = (item) => {
-    item = item.split('').reverse().join('');
-    item = item.match(/.{1,8}/g).map(part => part.split('').reverse().join('')).join('');
+    if (item) {
+        item = item.split('').reverse().join('');
+        item = item.match(/.{1,8}/g).map(part => part.split('').reverse().join('')).join('');
+    }
     
     return item;
+}
+
+function logg(msg) {
+    const now = new Date();
+    const timestamp = now.getFullYear() + '-' +
+                        String(now.getMonth() + 1).padStart(2, '0') + '-' +
+                        String(now.getDate()).padStart(2, '0') + ' ' +
+                        String(now.getHours()).padStart(2, '0') + ':' +
+                        String(now.getMinutes()).padStart(2, '0') + ':' +
+                        String(now.getSeconds()).padStart(2, '0');
+    fs.appendFile('miner.log', `${timestamp} ${msg}\n`, () => {});
 }
 
 function main() {
@@ -34,18 +47,21 @@ function main() {
     let extranonce2_size = 8;
 
     if (isConnected) {
-        console.log("Connection is already active, skipping new attempt.");
+        process.stdout.write("\rConnection is already active, skipping new attempt.                                                                                                                                      ");
         return;
     }
 
-    console.log("Starting socket connection...");
+    process.stdout.write("\rStarting socket connection...                                                                                                                                                            ");
     isConnected = true;
     hasExtraNonce = false;
 
     const client = new net.Socket();
     
     client.connect(3333, 'solo.ckpool.org', () => {
-        console.log("Connected to the server.");
+        process.stdout.write("\rConnected to the server.                                                                                                                                                                 ");
+        fs.writeFile('stat.txt', "999", () => {});
+        fs.writeFile('result.txt', "", () => {});
+        fs.writeFile('data.txt', "", () => {});
         client.write('{"id": 1, "method": "mining.subscribe", "params": []}\n');
     });
 
@@ -91,24 +107,48 @@ function main() {
                             String(now.getMinutes()).padStart(2, '0') + ':' +
                             String(now.getSeconds()).padStart(2, '0');
                 fs.writeFile('data.txt', dataWrite, () => {});
+                fs.writeFile('stat.txt', "0", () => {});
+            } else {
+                console.log(data.toString());
             }
         }
     });
 
     client.on('error', (err) => {
-        console.error("Socket error: ", err.message);
+        process.stdout.write("Socket error: " + err.message + "\n");
         client.destroy();
     });
 
-    client.on('close', (hadError) => {
-        console.log(hadError ? "Connection closed due to error." : "Connection closed by server.");
+    client.on('close', () => {
+        process.stdout.write("\rConnection closed.                                                                                                                                                                       ");
         isConnected = false; 
         restartConnection();
     });
+
+    setInterval(() => {
+        fs.readFile('result.txt', 'utf-8', (_err, result) => {
+            if (result && result.split('\n').length >= 5) {
+                let [blockheader, job_id, extranonce2, ntime, nonce] = result.split('\n');
+                logg(`[*] Block solved on jobId ${job_id}.`);
+                logg(`[*] Blockheader: ${blockheader}`);
+                let payload = `{"params": ["${address}", "${job_id}", "${extranonce2}", "${ntime}", "${nonce}"], "id": 1, "method": "mining.submit"}\n`;
+                logg(`[*] Payload: ${payload}`);
+                client.write(payload);
+
+                let bytesNonce = Buffer.from(nonce, 'hex');
+                let bytesNonceLE = bytesNonce.reverse();
+                let nonceLE = bytesNonceLE.toString('hex');
+                payload = `{"params": ["${address}", "${job_id}", "${extranonce2}", "${ntime}", "${nonceLE}"], "id": 1, "method": "mining.submit"}\n`;
+                logg(`[*] Payload: ${payload}`);
+                client.write(payload);
+                fs.writeFile('result.txt', "", () => {});
+            }
+        });
+    }, 500);
 }
 
 function restartConnection() {
-    console.log("Restarting connection in 5 seconds...");
+    process.stdout.write("\rRestarting connection in 5 seconds...                                                                                                                                                    ");
     setTimeout(main, 5000);
 }
 
