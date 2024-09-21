@@ -4,3 +4,5 @@
 go_solo_block
 __pycache__/
 *.exe
+package-lock.json
+node_modules/
