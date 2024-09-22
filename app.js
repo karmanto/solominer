@@ -25,7 +25,7 @@ const rev8 = (item) => {
         item = item.split('').reverse().join('');
         item = item.match(/.{1,8}/g).map(part => part.split('').reverse().join('')).join('');
     }
-    
+
     return item;
 }
 
@@ -45,6 +45,8 @@ function main() {
     let hasExtraNonce = false;
     let extranonce1 = '';
     let extranonce2_size = 8;
+    let intervalId;
+    let lastReceiveData = Date.now();
 
     if (isConnected) {
         process.stdout.write("\rConnection is already active, skipping new attempt.                                                                                                                                      ");
@@ -78,7 +80,7 @@ function main() {
         } else {
             const jsonData = jsonArray(data);
             const foundExtranonceData = jsonData.find(obj => obj.id === null);
-            if (foundExtranonceData) {
+            if (foundExtranonceData && foundExtranonceData.params && Array.isArray(foundExtranonceData.params) && foundExtranonceData.params.length > 8) {
                 const [job_id, prevhash, coinb1, coinb2, merkle_branch, version, nbits, ntime, clean_jobs] = foundExtranonceData.params;
                 const prevHashLE = rev8(prevhash);
                 const versionLE = parseInt(version, 16);
@@ -108,9 +110,8 @@ function main() {
                             String(now.getSeconds()).padStart(2, '0');
                 fs.writeFile('data.txt', dataWrite, () => {});
                 fs.writeFile('stat.txt', "0", () => {});
-            } else {
-                console.log(data.toString());
-            }
+                lastReceiveData = Date.now();
+            } 
         }
     });
 
@@ -122,10 +123,14 @@ function main() {
     client.on('close', () => {
         process.stdout.write("\rConnection closed.                                                                                                                                                                       ");
         isConnected = false; 
+        if (intervalId) {
+            clearInterval(intervalId);
+        }
+
         restartConnection();
     });
 
-    setInterval(() => {
+    intervalId = setInterval(() => {
         fs.readFile('result.txt', 'utf-8', (_err, result) => {
             if (result && result.split('\n').length >= 5) {
                 let [blockheader, job_id, extranonce2, ntime, nonce] = result.split('\n');
@@ -134,7 +139,7 @@ function main() {
                 let payload = `{"params": ["${address}", "${job_id}", "${extranonce2}", "${ntime}", "${nonce}"], "id": 1, "method": "mining.submit"}\n`;
                 logg(`[*] Payload: ${payload}`);
                 client.write(payload);
-
+    
                 let bytesNonce = Buffer.from(nonce, 'hex');
                 let bytesNonceLE = bytesNonce.reverse();
                 let nonceLE = bytesNonceLE.toString('hex');
@@ -144,6 +149,11 @@ function main() {
                 fs.writeFile('result.txt', "", () => {});
             }
         });
+        if (Date.now() - lastReceiveData >= 1200000) {
+            lastReceiveData = Date.now();
+            client.destroy();
+        }
+
     }, 500);
 }
 
